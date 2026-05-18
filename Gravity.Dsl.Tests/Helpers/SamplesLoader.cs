@@ -34,6 +34,8 @@ internal static class SamplesLoader
 
     public static string GoldenCSharpDir() => FindRepoSubdirectory(Path.Combine("tests", "golden", "csharp"));
 
+    public static string GoldenOutlineDir() => FindRepoSubdirectory(Path.Combine("tests", "golden", "outline"));
+
     public static ResolvedModel LoadRegistry()
     {
         var registryDir = RegistrySamplesDir();

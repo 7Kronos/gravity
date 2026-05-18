@@ -1,0 +1,23 @@
+<Project>
+
+  <!--
+    Phase 9 FR-224 — cross-package emitter wiring. NuGet imports this .props file at
+    the top of the consuming .csproj. It contributes the sample emitter's assembly path
+    to <GravityDslEmitterAssembly>; the main Gravity.Dsl.MsBuild package's targets file
+    then passes those items to GravityDslGenTask, which loads each DLL and registers
+    its IEmitter implementations alongside the built-in C# reference emitter.
+
+    The path is resolved against this file's own directory ($(MSBuildThisFileDirectory))
+    so the package layout (buildTransitive/Gravity.Dsl.Emitter.Sample.Outline.props +
+    lib/net9.0/Gravity.Dsl.Emitter.Sample.Outline.dll) is the single source of truth.
+
+    Consumers who want Markdown output add a <PackageReference> to this package
+    alongside <PackageReference Include="Gravity.Dsl.MsBuild" /> and the wiring is
+    automatic.
+  -->
+
+  <ItemGroup>
+    <GravityDslEmitterAssembly Include="$(MSBuildThisFileDirectory)..\lib\net9.0\Gravity.Dsl.Emitter.Sample.Outline.dll" />
+  </ItemGroup>
+
+</Project>

@@ -35,4 +35,13 @@
     <ProjectReference Include="..\..\..\..\Gravity.Dsl.Emitter\Gravity.Dsl.Emitter.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- FR-224: ship the buildTransitive props that contributes this emitter's DLL
+         to <GravityDslEmitterAssembly>, so a consumer that pulls in this package
+         alongside Gravity.Dsl.MsBuild gets the outline emitter registered at
+         GravityDslGenerate time without any further csproj configuration. -->
+    <None Include="buildTransitive\Gravity.Dsl.Emitter.Sample.Outline.props"
+          Pack="true" PackagePath="buildTransitive\Gravity.Dsl.Emitter.Sample.Outline.props" />
+  </ItemGroup>
+
 </Project>

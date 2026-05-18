@@ -38,6 +38,15 @@ public sealed class GravityDslGenTask : MsBuildTask
     /// <summary>Absolute path to <c>$(MSBuildProjectDirectory)</c>; used to resolve relative metadata.</summary>
     public string ProjectDirectory { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Optional list of extra emitter assemblies (FR-224) — each <c>ITaskItem</c>'s
+    /// <c>FullPath</c> names a <c>.dll</c> exposing one or more <c>IEmitter</c> types.
+    /// Populated by <c>@(GravityDslEmitterAssembly)</c> items contributed by emitter
+    /// packages (e.g. <c>Gravity.Dsl.Emitter.Sample.Outline</c>) whose
+    /// <c>buildTransitive/</c> props file adds the relevant DLL path.
+    /// </summary>
+    public ITaskItem[] EmitterAssemblies { get; set; } = Array.Empty<ITaskItem>();
+
     /// <inheritdoc />
     public override bool Execute()
     {
@@ -73,6 +82,18 @@ public sealed class GravityDslGenTask : MsBuildTask
             configFile = resolved;
         }
 
+        // FR-224: resolve extra emitter assembly paths once up-front; each path is
+        // threaded into every per-group CompilerPipeline.Gen call so an emitter
+        // package's contribution is visible to every <GravityDsl> group.
+        IReadOnlyList<string>? extraEmitterAssemblies = null;
+        if (EmitterAssemblies.Length > 0)
+        {
+            extraEmitterAssemblies = EmitterAssemblies
+                .Select(i => i.GetMetadata("FullPath"))
+                .Where(p => !string.IsNullOrEmpty(p))
+                .ToList();
+        }
+
         // FR-202: group inputs by (resolved Output override, Emitter whitelist) so per-item
         // metadata actually flows through to the emitter host. Items without metadata share
         // the task-level OutputDir / no-emitter-filter group.
@@ -102,7 +123,8 @@ public sealed class GravityDslGenTask : MsBuildTask
                 outputRoot: group.Key.Output,
                 currentDate: currentDate,
                 configFile: configFile,
-                emitterFilter: emitterFilter).GetAwaiter().GetResult();
+                emitterFilter: emitterFilter,
+                extraEmitterAssemblies: extraEmitterAssemblies).GetAwaiter().GetResult();
 
             foreach (var d in result.Diagnostics)
             {

@@ -132,12 +132,17 @@ public static class CompilerPipeline
     /// <param name="configFile">Optional explicit path to a <c>.gravity.config</c> file.
     /// When null, defaults to a <c>.gravity.config</c> sibling of the first source file.</param>
     /// <param name="emitterFilter">Optional emitter whitelist.</param>
+    /// <param name="extraEmitterAssemblies">Optional absolute paths to additional emitter
+    /// assemblies (e.g. <c>Gravity.Dsl.Emitter.Sample.Outline.dll</c>). Each assembly is loaded
+    /// and any public concrete <see cref="IEmitter"/> implementations are registered alongside
+    /// the built-in C# reference emitter (FR-224). Inherits the LD-13 stability contract.</param>
     public static async Task<PipelineResult> Gen(
         IList<string> inputs,
         string outputRoot,
         DateOnly currentDate,
         string? configFile = null,
-        IReadOnlyList<string>? emitterFilter = null)
+        IReadOnlyList<string>? emitterFilter = null,
+        IReadOnlyList<string>? extraEmitterAssemblies = null)
     {
         if (inputs is null) throw new ArgumentNullException(nameof(inputs));
         if (outputRoot is null) throw new ArgumentNullException(nameof(outputRoot));
@@ -160,7 +165,7 @@ public static class CompilerPipeline
             return new PipelineResult(false, diags.ToImmutable());
         }
 
-        var registry = BuildRegistry();
+        var registry = BuildRegistry(extraEmitterAssemblies);
         diags.AddRange(registry.Diagnostics);
 
         var validatorDiags = Validator.Validate(resolved.Model, registry.ClaimedAnnotationNamespaces(), currentDate);
@@ -249,11 +254,75 @@ public static class CompilerPipeline
         return Path.Combine(resolverRoot, ".gravity.config");
     }
 
-    private static EmitterRegistry BuildRegistry()
+    private static EmitterRegistry BuildRegistry(IReadOnlyList<string>? extraAssemblies = null)
     {
-        // Phase 3: hard-coded reference emitter set. Plugin discovery is a future
-        // gravc flag and not required for this slice.
-        return EmitterRegistry.FromInstances(new IEmitter[] { new CSharpEmitter() });
+        // Phase 0–3: hard-coded reference emitter set (CSharpEmitter). Phase 9 (FR-224)
+        // augments this with optional caller-supplied emitter assemblies — the MSBuild
+        // task threads <GravityDslEmitterAssembly> items here so packages like
+        // Gravity.Dsl.Emitter.Sample.Outline can contribute their emitters at build time.
+        var instances = new List<IEmitter> { new CSharpEmitter() };
+        if (extraAssemblies is not null && extraAssemblies.Count > 0)
+        {
+            var loaded = LoadExtraEmitters(extraAssemblies);
+            instances.AddRange(loaded);
+        }
+        return EmitterRegistry.FromInstances(instances);
+    }
+
+    /// <summary>
+    /// Load every public concrete <see cref="IEmitter"/> from each assembly path in
+    /// <paramref name="assemblyPaths"/>. Mirrors <see cref="EmitterRegistry.Discover"/>
+    /// in spirit but operates on an explicit file list rather than a directory scan,
+    /// which is the model the MSBuild task plumbs through (FR-224 / T206 wiring).
+    /// </summary>
+    private static List<IEmitter> LoadExtraEmitters(IReadOnlyList<string> assemblyPaths)
+    {
+        var result = new List<IEmitter>();
+        var sorted = assemblyPaths.ToArray();
+        Array.Sort(sorted, StringComparer.Ordinal);
+        foreach (var path in sorted)
+        {
+            if (string.IsNullOrEmpty(path) || !File.Exists(path)) continue;
+            System.Reflection.Assembly asm;
+            try
+            {
+                // Use the default load context so the emitter shares Gravity.Dsl.Emitter
+                // type identity with this assembly (no IEmitter type-identity mismatch).
+                asm = System.Reflection.Assembly.LoadFrom(path);
+            }
+            catch (Exception)
+            {
+                continue;
+            }
+            Type[] types;
+            try
+            {
+                types = asm.GetTypes();
+            }
+            catch (System.Reflection.ReflectionTypeLoadException ex)
+            {
+                types = ex.Types.Where(t => t is not null).ToArray()!;
+            }
+            Array.Sort(types, (a, b) => string.CompareOrdinal(a?.FullName, b?.FullName));
+            foreach (var t in types)
+            {
+                if (t is null) continue;
+                if (!typeof(IEmitter).IsAssignableFrom(t)) continue;
+                if (t.IsAbstract || t.IsInterface) continue;
+                if (!t.IsPublic && !t.IsNestedPublic) continue;
+                var ctor = t.GetConstructor(Type.EmptyTypes);
+                if (ctor is null) continue;
+                try
+                {
+                    result.Add((IEmitter)ctor.Invoke(null));
+                }
+                catch (Exception)
+                {
+                    // Skip emitters whose ctor throws — the registry will simply omit them.
+                }
+            }
+        }
+        return result;
     }
 
     private static (List<SourceFile> Files, List<Diagnostic> Diags) ParseAll(string inputRoot)

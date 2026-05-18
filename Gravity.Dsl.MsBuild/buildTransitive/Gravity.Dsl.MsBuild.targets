@@ -21,7 +21,8 @@
                        OutputDir="$(GravityDslOutputDir)"
                        ConfigFile="$(GravityDslConfig)"
                        AsOf="$(GravityDslAsOf)"
-                       ProjectDirectory="$(MSBuildProjectDirectory)" />
+                       ProjectDirectory="$(MSBuildProjectDirectory)"
+                       EmitterAssemblies="@(GravityDslEmitterAssembly)" />
     <!-- FR-208: stamp file written last so MSBuild's Inputs/Outputs comparison can short-circuit
          the next build. AlwaysCreate=true so the file is touched even on no-codegen runs. -->
     <Touch Files="$(GravityDslOutputDir)\.gravity-stamp" AlwaysCreate="true" />
