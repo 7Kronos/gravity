@@ -149,7 +149,8 @@ internal static class SpanIgnoringEquality
         }
         if (a is NamedTypeRef na && b is NamedTypeRef nb)
         {
-            return na.Name == nb.Name && na.IsOptional == nb.IsOptional && na.IsArray == nb.IsArray;
+            return na.Name == nb.Name && na.IsOptional == nb.IsOptional && na.IsArray == nb.IsArray
+                && na.Version == nb.Version;
         }
         return false;
     }

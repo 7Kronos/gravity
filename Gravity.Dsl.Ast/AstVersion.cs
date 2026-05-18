@@ -11,6 +11,6 @@ namespace Gravity.Dsl.Ast;
 /// </remarks>
 public static class AstVersion
 {
-    /// <summary>Current AST contract version. Phase 0–3 ships 1.0.0.</summary>
-    public const string Value = "1.0.0";
+    /// <summary>Current AST contract version. Phase 0–3 shipped 1.0.0; Phase 8 ships 1.1.0.</summary>
+    public const string Value = "1.1.0";
 }

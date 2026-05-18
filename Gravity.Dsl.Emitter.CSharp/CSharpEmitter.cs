@@ -52,12 +52,12 @@ public sealed class CSharpEmitter : IEmitter
         // namespace and the original .gravity relative path for the header.
         var declToFile = BuildDeclToFile(model);
 
-        // Walk Declarations in FQN ordinal order (already enforced by
-        // ImmutableSortedDictionary<string, TopLevelDecl>).
+        // Walk Declarations in (FQN ordinal, Version asc) order (FR-161, enforced by
+        // ImmutableSortedDictionary<DeclKey, TopLevelDecl> with DeclKeyComparer).
         foreach (var kv in model.Declarations)
         {
             var decl = kv.Value;
-            var sourceFile = declToFile[kv.Key];
+            var sourceFile = declToFile[kv.Key.Fqn];
             string? dslNs = sourceFile.Namespace?.Name;
             string csharpNs = NamespaceMapper.Compose(dslNs, configPrefix);
             string dir = NamespaceMapper.ComposeDirectory(dslNs);

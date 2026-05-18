@@ -1,0 +1,17 @@
+namespace ops;
+
+entity Employee version 1 {
+    identity id: UUID;
+
+    properties {
+        name: String;
+    }
+}
+
+entity Employee version 2 deprecates version 1 until "9999-12-31" {
+    identity id: UUID;
+
+    properties {
+        name: String;
+    }
+}

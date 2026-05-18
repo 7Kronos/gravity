@@ -5,6 +5,7 @@ using FluentAssertions;
 using Gravity.Dsl.Ast;
 using Gravity.Dsl.Compiler.Parsing;
 using Gravity.Dsl.Compiler.Resolution;
+using Gravity.Dsl.Compiler.Versioning;
 using Xunit;
 
 namespace Gravity.Dsl.Tests.Resolution;
@@ -45,8 +46,8 @@ public sealed class ResolverTests
         var result = Resolver.Resolve(files, root);
         result.Diagnostics.Should().BeEmpty();
         result.Model.Should().NotBeNull();
-        result.Model!.Declarations.Should().ContainKey("ok.Holder");
-        result.Model.Declarations.Should().ContainKey("ok.Shared");
+        result.Model!.Declarations.Keys.Should().Contain(k => k.Fqn == "ok.Holder");
+        result.Model.Declarations.Keys.Should().Contain(k => k.Fqn == "ok.Shared");
     }
 
     [Fact]

@@ -20,7 +20,7 @@ public sealed class ValidatorTests
         parsed.Diagnostics.Should().BeEmpty(because: "fixture should parse: " + source);
         var resolve = Resolver.Resolve(new[] { parsed.File! }, System.IO.Directory.GetCurrentDirectory());
         resolve.Model.Should().NotBeNull(because: "fixture should resolve: " + source);
-        return Validator.Validate(resolve.Model!, ClaimedNamespaces);
+        return Validator.Validate(resolve.Model!, ClaimedNamespaces, default(System.DateOnly));
     }
 
     // ----- VAL001: transition state not in states {} -----

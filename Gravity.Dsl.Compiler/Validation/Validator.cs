@@ -3,26 +3,35 @@ using System.Collections.Generic;
 using System.Globalization;
 using Gravity.Dsl.Ast;
 using Gravity.Dsl.Compiler.Resolution;
+using Gravity.Dsl.Compiler.Versioning;
 
 namespace Gravity.Dsl.Compiler.Validation;
 
 /// <summary>
 /// Runs semantic validation rules on a <see cref="ResolvedModel"/>. Rule set
-/// implemented in this phase: VAL001..VAL006, VAL009, VAL010. VAL007 (annotation
-/// namespace claimed by two emitters) is enforced by the emitter host in Phase 2.
+/// implemented: Phase 0–3 (<c>VAL001..VAL006, VAL009, VAL010</c>) plus the Phase 8
+/// breaking-change pass (<c>VAL020..VAL030</c>). <c>VAL007</c> (annotation
+/// namespace claimed by two emitters) is enforced by the emitter host.
 /// </summary>
 public static class Validator
 {
     /// <summary>
-    /// Validate the resolved model.
+    /// Validate the resolved model. The compiler library never reads the clock;
+    /// callers supply <paramref name="currentDate"/> (the CLI threads
+    /// <c>--as-of</c> or the operator-defaulted UTC date).
     /// </summary>
     /// <param name="model">The resolved model.</param>
     /// <param name="claimedAnnotationNamespaces">The set of annotation namespaces
     /// claimed by registered emitters. Phase 1 callers pass a hard-coded set
     /// (e.g. <c>{ "csharp" }</c>); Phase 2 will populate this from the emitter host.</param>
+    /// <param name="currentDate">The date to evaluate Phase 8 deprecation windows
+    /// against (FR-140). Passing <c>default(DateOnly)</c> (i.e. <c>0001-01-01</c>)
+    /// is the deterministic "always-in-window" choice used by Phase 0–3 callers
+    /// that do not exercise the versioning surface.</param>
     public static IReadOnlyList<Diagnostic> Validate(
         ResolvedModel model,
-        IReadOnlyCollection<string> claimedAnnotationNamespaces)
+        IReadOnlyCollection<string> claimedAnnotationNamespaces,
+        DateOnly currentDate)
     {
         var diagnostics = new List<Diagnostic>();
         var claimed = new HashSet<string>(claimedAnnotationNamespaces, StringComparer.Ordinal);
@@ -47,6 +56,12 @@ public static class Validator
                 ValidateDeprecatesDate(dep, diagnostics);
             }
         }
+
+        // Phase 8 breaking-change pass (VAL020..VAL030). The pass returns its
+        // diagnostics in FR-160 order; we append them after the Phase 0–3 block
+        // to preserve existing Phase 0–3 ordering and goldens (plan.md §4(b)).
+        var phase8 = VersionDiff.Run(model, currentDate);
+        foreach (var d in phase8) diagnostics.Add(d);
 
         return diagnostics;
     }

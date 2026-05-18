@@ -1,0 +1,34 @@
+namespace ops;
+
+entity Ticket version 1 {
+    identity id: UUID;
+
+    lifecycle {
+        states { Open, Closed; }
+        transitions {
+            Open -> Closed on Closed;
+            Closed -> Open on Reopened;
+        }
+    }
+
+    events {
+        Closed {};
+        Reopened {};
+    }
+}
+
+entity Ticket version 2 deprecates version 1 until "2099-01-01" {
+    identity id: UUID;
+
+    lifecycle {
+        states { Open, Closed; }
+        transitions {
+            Open -> Closed on Closed;
+        }
+    }
+
+    events {
+        Closed {};
+        Reopened {};
+    }
+}

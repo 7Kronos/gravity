@@ -1,0 +1,20 @@
+namespace fixtures;
+
+type Money version 2 { amount: Decimal; currency: String; }
+
+type ChargeResult { ok: Boolean; message: String?; }
+
+entity Order version 1 {
+
+  identity id: UUID;
+
+  events {
+    Charged { at: DateTime; };
+  }
+
+  commands {
+    Charge(amount: Money@2, refund: Money@2?, fees: Money@2[])
+      returns ChargeResult
+      with side_effect Charged;
+  }
+}

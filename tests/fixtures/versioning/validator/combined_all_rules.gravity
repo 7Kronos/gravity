@@ -1,0 +1,109 @@
+namespace combo;
+
+type Result { ok: Boolean; }
+
+// Group A: drives VAL020 (field removed), VAL021 (narrowed),
+// VAL022 (state removed), VAL023 (command removed), VAL024 (event removed),
+// VAL025 (transition removed), VAL026 (arg narrowed), and VAL030
+// (deprecation window expired — until is in the past for the diff test).
+entity Alpha version 1 {
+    identity id: UUID;
+
+    properties {
+        droppedField: String;
+        narrowedField: Decimal;
+    }
+
+    lifecycle {
+        states { Open, Closed, Archived; }
+        transitions {
+            Open -> Closed on Closed;
+            Closed -> Archived on Archived;
+        }
+    }
+
+    events {
+        Closed {};
+        Archived {};
+        OldEvent {};
+    }
+
+    commands {
+        Doomed(amount: Decimal) returns Result with side_effect Closed;
+        KeepIt(reason: String) returns Result with side_effect Closed;
+    }
+}
+
+entity Alpha version 2 deprecates version 1 until "2026-01-01" {
+    identity id: UUID;
+
+    properties {
+        narrowedField: Int;
+    }
+
+    lifecycle {
+        states { Open, Closed; }
+        transitions {
+            Open -> Closed on Closed;
+        }
+    }
+
+    events {
+        Closed {};
+    }
+
+    commands {
+        KeepIt(reason: Int) returns Result with side_effect Closed;
+    }
+}
+
+// Group B: drives VAL027 (skipped chain link).
+entity Beta version 1 {
+    identity id: UUID;
+
+    properties {
+        name: String;
+    }
+}
+
+entity Beta version 2 deprecates version 1 until "2099-01-01" {
+    identity id: UUID;
+
+    properties {
+        name: String;
+    }
+}
+
+entity Beta version 3 deprecates version 1 until "2099-01-01" {
+    identity id: UUID;
+
+    properties {
+        name: String;
+    }
+}
+
+// Group C: drives VAL028 (deprecates names a non-existent version).
+entity Gamma version 1 {
+    identity id: UUID;
+
+    properties {
+        name: String;
+    }
+}
+
+entity Gamma version 2 deprecates version 9 until "2099-01-01" {
+    identity id: UUID;
+
+    properties {
+        name: String;
+    }
+}
+
+// Group D: drives VAL029 (self-deprecation).
+entity Delta version 2 deprecates version 2 until "2099-01-01" {
+    identity id: UUID;
+
+    properties {
+        name: String;
+    }
+}

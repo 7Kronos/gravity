@@ -1,0 +1,18 @@
+namespace ops;
+
+entity Ticket version 1 {
+    identity id: UUID;
+
+    events {
+        Opened {};
+        Closed {};
+    }
+}
+
+entity Ticket version 2 deprecates version 1 until "2099-01-01" {
+    identity id: UUID;
+
+    events {
+        Opened {};
+    }
+}

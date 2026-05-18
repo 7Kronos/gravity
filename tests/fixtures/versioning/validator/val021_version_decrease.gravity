@@ -1,0 +1,25 @@
+namespace ops;
+
+type Money version 1 {
+    amount: Decimal;
+}
+
+type Money version 2 {
+    amount: Decimal;
+}
+
+entity Invoice version 1 {
+    identity id: UUID;
+
+    properties {
+        cost: Money@2;
+    }
+}
+
+entity Invoice version 2 deprecates version 1 until "2099-01-01" {
+    identity id: UUID;
+
+    properties {
+        cost: Money@1;
+    }
+}

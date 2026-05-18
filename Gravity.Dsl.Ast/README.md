@@ -15,13 +15,25 @@ The package exposes a single constant:
 ```csharp
 public static class AstVersion
 {
-    public const string Value = "1.0.0";
+    public const string Value = "1.1.0";
 }
 ```
 
 `AstVersion` is **independent of the DSL grammar version**. The grammar can grow
 additively without changing the AST version; only a breaking change to a public
 record on this package bumps the major.
+
+### 1.1.0 (Phase 8)
+
+Single additive change: `NamedTypeRef` gains an optional `int? Version` slot,
+appended as the **last** positional parameter with a default of `null`. The
+4-argument constructor signature from `1.0.0` is preserved — source compiled
+against `1.0.0` that constructed `new NamedTypeRef(name, isOpt, isArr, span)`
+continues to compile and run identically against `1.1.0` (the default kicks in,
+`Version = null`). Pattern matching using named properties (`is NamedTypeRef n`
+then reading `n.Name`, `n.IsOptional`, etc.) is unaffected. Per the FR-111
+compatibility promise, no other AST record changes shape. See `specs/002-phase-8-versioning/`
+(FR-110, FR-111, FR-112, FR-113) for the versioning surface.
 
 Emitters declare the AST version range they support (see
 `Gravity.Dsl.Emitter.IEmitter.SupportedAstVersions`). The emitter host refuses

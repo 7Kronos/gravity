@@ -32,7 +32,7 @@ public sealed class SmokeTests
             "smoke-csharp-" + Interlocked.Increment(ref _seq));
         try
         {
-            var result = await CompilerPipeline.Gen(inputRoot, outputRoot, emitterFilter: new[] { "csharp" });
+            var result = await CompilerPipeline.Gen(inputRoot, outputRoot, default(System.DateOnly), emitterFilter: new[] { "csharp" });
             result.Success.Should().BeTrue(
                 because: "gen should succeed on the registry samples; got: "
                     + string.Join("; ", result.Diagnostics.Select(d => d.RuleId + " " + d.Message)));

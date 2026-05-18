@@ -26,7 +26,15 @@ internal static class CompilerPipeline
         ImmutableArray<Diagnostic> Diagnostics);
 
     /// <summary>Parse + resolve + validate every <c>.gravity</c> file beneath <paramref name="inputRoot"/>.</summary>
-    public static async Task<PipelineResult> Check(string inputRoot, IReadOnlyList<string>? emitterFilter = null)
+    /// <param name="inputRoot">Root directory containing <c>.gravity</c> sources.</param>
+    /// <param name="currentDate">Date passed to <see cref="Validator.Validate"/> for
+    /// Phase 8 deprecation-window evaluation (FR-140). The CLI threads
+    /// <c>--as-of</c> here; tests pass a deterministic value.</param>
+    /// <param name="emitterFilter">Optional emitter whitelist; ignored by <c>check</c>.</param>
+    public static async Task<PipelineResult> Check(
+        string inputRoot,
+        DateOnly currentDate,
+        IReadOnlyList<string>? emitterFilter = null)
     {
         if (inputRoot is null) throw new ArgumentNullException(nameof(inputRoot));
 
@@ -50,7 +58,7 @@ internal static class CompilerPipeline
         var registry = BuildRegistry();
         diags.AddRange(registry.Diagnostics);
 
-        var validatorDiags = Validator.Validate(resolved.Model, registry.ClaimedAnnotationNamespaces());
+        var validatorDiags = Validator.Validate(resolved.Model, registry.ClaimedAnnotationNamespaces(), currentDate);
         diags.AddRange(validatorDiags);
 
         await Task.CompletedTask.ConfigureAwait(false);
@@ -58,9 +66,15 @@ internal static class CompilerPipeline
     }
 
     /// <summary>Full gen workflow: check + load config + run emitters into <paramref name="outputRoot"/>.</summary>
+    /// <param name="inputRoot">Root directory containing <c>.gravity</c> sources.</param>
+    /// <param name="outputRoot">Output directory; created if missing.</param>
+    /// <param name="currentDate">Date passed to <see cref="Validator.Validate"/> for
+    /// Phase 8 deprecation-window evaluation (FR-140).</param>
+    /// <param name="emitterFilter">Optional emitter whitelist.</param>
     public static async Task<PipelineResult> Gen(
         string inputRoot,
         string outputRoot,
+        DateOnly currentDate,
         IReadOnlyList<string>? emitterFilter = null)
     {
         if (inputRoot is null) throw new ArgumentNullException(nameof(inputRoot));
@@ -84,7 +98,7 @@ internal static class CompilerPipeline
         var registry = BuildRegistry();
         diags.AddRange(registry.Diagnostics);
 
-        var validatorDiags = Validator.Validate(resolved.Model, registry.ClaimedAnnotationNamespaces());
+        var validatorDiags = Validator.Validate(resolved.Model, registry.ClaimedAnnotationNamespaces(), currentDate);
         diags.AddRange(validatorDiags);
         if (HasFatalError(validatorDiags))
         {

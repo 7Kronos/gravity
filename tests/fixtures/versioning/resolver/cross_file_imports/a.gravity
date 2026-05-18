@@ -1,0 +1,11 @@
+namespace ops;
+
+import "defs_v1.gravity";
+
+entity Holder version 1 {
+    identity id: UUID;
+
+    properties {
+        lead_project: Project;
+    }
+}

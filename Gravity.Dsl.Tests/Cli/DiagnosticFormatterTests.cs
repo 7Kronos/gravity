@@ -55,7 +55,7 @@ public sealed class DiagnosticFormatterTests
             File.WriteAllText(Path.Combine(tmp, "A.gravity"),
                 "namespace x;\nimport \"NoSuchFile.gravity\";\n\nentity Thing version 1 {\n  identity id: UUID;\n  relations {\n    other: Missing cardinality one;\n  }\n  lifecycle {\n    states { S; }\n    transitions {}\n  }\n  events {}\n  commands {}\n}\n");
 
-            var result = await CompilerPipeline.Check(tmp);
+            var result = await CompilerPipeline.Check(tmp, default(System.DateOnly));
             result.Success.Should().BeFalse();
             var ids = result.Diagnostics.Select(d => d.RuleId).Distinct().ToArray();
             ids.Should().Contain("RES002", because: "missing import file");

@@ -129,6 +129,17 @@ public sealed class LexerTests
     }
 
     [Fact]
+    public void At_Produces_AtToken()
+    {
+        // Phase 8 / T103: bare '@' must tokenize to TokenKind.At so the parser can
+        // consume an '@N' version suffix on a type ref independently of annotation
+        // contexts. Pinned in isolation (the annotation tests already exercise '@'
+        // followed by an identifier; this case asserts the lone punctuation form).
+        var lex = Lexer.Tokenize("@", "test");
+        lex.Tokens[0].Kind.Should().Be(TokenKind.At);
+    }
+
+    [Fact]
     public void UnknownStringEscape_Emits_LEX002()
     {
         // \x is not in the supported escape set {\\, \", \n, \t, \r}.

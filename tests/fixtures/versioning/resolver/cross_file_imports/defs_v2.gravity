@@ -1,0 +1,9 @@
+namespace ops;
+
+entity Project version 2 deprecates version 1 until "2099-12-31" {
+    identity id: UUID;
+
+    properties {
+        name: String;
+    }
+}

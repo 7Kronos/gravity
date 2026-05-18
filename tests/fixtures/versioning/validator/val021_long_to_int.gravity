@@ -1,0 +1,17 @@
+namespace ops;
+
+entity Employee version 1 {
+    identity id: UUID;
+
+    properties {
+        ssn: Long;
+    }
+}
+
+entity Employee version 2 deprecates version 1 until "2099-01-01" {
+    identity id: UUID;
+
+    properties {
+        ssn: Int;
+    }
+}

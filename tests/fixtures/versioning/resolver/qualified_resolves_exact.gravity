@@ -1,0 +1,25 @@
+namespace ops;
+
+entity Project version 1 {
+    identity id: UUID;
+
+    properties {
+        name: String;
+    }
+}
+
+entity Project version 2 deprecates version 1 until "2099-12-31" {
+    identity id: UUID;
+
+    properties {
+        name: String;
+    }
+}
+
+entity Holder version 1 {
+    identity id: UUID;
+
+    properties {
+        lead_project_legacy: Project@1;
+    }
+}

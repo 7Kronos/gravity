@@ -1,0 +1,13 @@
+tests/fixtures/versioning/validator/combined_all_rules.gravity:37:1: error VAL020: entity-property.droppedField was removed in combo.Alpha@2; field removal is a breaking change; the prior version 'combo.Alpha@1' declared this field — keep it, mark it '?', or add a 'deprecates' chain and a future '@deprecated' field annotation when that lands
+tests/fixtures/versioning/validator/combined_all_rules.gravity:41:9: error VAL021: entity-property.narrowedField: type narrowed from Decimal to Int in combo.Alpha@2
+tests/fixtures/versioning/validator/combined_all_rules.gravity:44:5: error VAL022: lifecycle state 'Archived' removed from combo.Alpha@2; state removal is a breaking change
+tests/fixtures/versioning/validator/combined_all_rules.gravity:37:1: error VAL023: command 'Doomed' removed from combo.Alpha@2; command removal is a breaking change
+tests/fixtures/versioning/validator/combined_all_rules.gravity:37:1: error VAL024: event 'Archived' removed from combo.Alpha@2; event removal is a breaking change
+tests/fixtures/versioning/validator/combined_all_rules.gravity:37:1: error VAL024: event 'OldEvent' removed from combo.Alpha@2; event removal is a breaking change
+tests/fixtures/versioning/validator/combined_all_rules.gravity:44:5: warning VAL025: transition 'Closed -> Archived on Archived' removed from combo.Alpha@2
+tests/fixtures/versioning/validator/combined_all_rules.gravity:56:16: error VAL026: command 'KeepIt' on combo.Alpha@2: argument 'reason': argument type narrowed from String to Int
+tests/fixtures/versioning/validator/combined_all_rules.gravity:37:24: error VAL030: deprecation window for combo.Alpha@1 expired on 2026-01-01; remove the deprecated version or extend the window
+tests/fixtures/versioning/validator/combined_all_rules.gravity:77:23: error VAL027: deprecates chain broken: combo.Beta@2 coexists with combo.Beta@3 but is not named in its deprecates clause
+tests/fixtures/versioning/validator/combined_all_rules.gravity:103:24: error VAL029: entity combo.Delta@2 may not deprecate version 2; 2 must be strictly less than 2
+tests/fixtures/versioning/validator/combined_all_rules.gravity:94:24: error VAL028: deprecates version 9 references no declared version of combo.Gamma
+tests/fixtures/versioning/validator/combined_all_rules.gravity:94:24: error VAL029: entity combo.Gamma@2 may not deprecate version 9; 9 must be strictly less than 2

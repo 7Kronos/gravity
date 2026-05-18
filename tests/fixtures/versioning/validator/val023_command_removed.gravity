@@ -1,0 +1,24 @@
+namespace ops;
+
+type Result { ok: Boolean; }
+
+entity Ticket version 1 {
+    identity id: UUID;
+
+    events { Submitted {}; Cancelled {}; }
+
+    commands {
+        Submit() returns Result with side_effect Submitted;
+        Cancel() returns Result with side_effect Cancelled;
+    }
+}
+
+entity Ticket version 2 deprecates version 1 until "2099-01-01" {
+    identity id: UUID;
+
+    events { Submitted {}; Cancelled {}; }
+
+    commands {
+        Submit() returns Result with side_effect Submitted;
+    }
+}

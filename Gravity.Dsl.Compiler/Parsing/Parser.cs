@@ -345,6 +345,8 @@ public static class Parser
             var nameTok = s.Expect(TokenKind.Identifier);
             s.Expect(TokenKind.Colon);
             var targetTok = s.Expect(TokenKind.Identifier);
+            // FR-100 / T106: version suffix is not permitted on relation targets.
+            RefuseVersionSuffix(s, "version suffix is not permitted on relation targets");
             bool optional = false;
             if (s.Peek().Kind == TokenKind.Question)
             {
@@ -553,6 +555,9 @@ public static class Parser
             s.Expect(TokenKind.RParen);
             s.Expect(TokenKind.Returns);
             var returnsTok = s.Expect(TokenKind.Identifier);
+            // FR-100 / T106a: version suffix is not permitted on command return types
+            // (CommandDecl.ReturnsType is a bare string in the v1 AST).
+            RefuseVersionSuffix(s, "version suffix is not permitted on command return types");
             s.Expect(TokenKind.With);
             s.Expect(TokenKind.SideEffect);
             var evtTok = s.Expect(TokenKind.Identifier);
@@ -594,6 +599,28 @@ public static class Parser
     private static TypeRef ParseTypeRef(ParserState s)
     {
         var nameTok = s.Expect(TokenKind.Identifier);
+
+        // FR-100 / FR-101: optional '@N' version suffix is parsed BEFORE the '?'/'[]'
+        // modifiers. Malformed suffixes emit PARSE020 at the '@' token and recover by
+        // treating the suffix as absent so a single bad suffix does not cascade.
+        //
+        // Disambiguation: an '@' followed by an Identifier is an annotation, not a
+        // version suffix (e.g. `name: String @csharp(...)` in a properties block).
+        // The annotation parser consumes those at the next stage. An '@' followed by
+        // anything else (IntegerLiteral, punctuation, EOF) is treated as a version
+        // suffix attempt so malformed cases like `Money@`, `Money@ 2`, `Money@01`
+        // still surface PARSE020.
+        int? version = null;
+        if (s.Peek().Kind == TokenKind.At && s.PeekAt(1).Kind != TokenKind.Identifier)
+        {
+            var atTok = s.Consume();
+            if (!TryReadVersionSuffix(s, atTok, out version, out var diag))
+            {
+                s.Diagnostics.Add(diag!);
+                version = null;
+            }
+        }
+
         // Parse [] and ? in either order; the spec (FR-011) makes the order significant
         // for emission of "String[]?" vs "String?[]", so capture exactly what was written.
         bool isOptional = false;
@@ -635,9 +662,114 @@ public static class Parser
         };
         if (prim is { } pk)
         {
+            // FR-100 / T105: version suffix is not permitted on primitive types.
+            if (version is not null)
+            {
+                s.Diagnostics.Add(new Diagnostic(
+                    DiagnosticSeverity.Error,
+                    RuleIds.Parse020,
+                    "version suffix is not permitted on primitive types",
+                    nameTok.Span));
+            }
             return new PrimitiveTypeRef(pk, isOptional, isArray, nameTok.Span);
         }
-        return new NamedTypeRef(nameTok.Lexeme, isOptional, isArray, nameTok.Span);
+        return new NamedTypeRef(nameTok.Lexeme, isOptional, isArray, nameTok.Span, version);
+    }
+
+    /// <summary>
+    /// Reads the integer literal of an <c>@N</c> version suffix following the '@'
+    /// token <paramref name="atTok"/>. Returns <c>true</c> on success with the
+    /// parsed positive integer in <paramref name="version"/>; returns <c>false</c>
+    /// and a PARSE020 diagnostic on malformed input (FR-101).
+    /// </summary>
+    private static bool TryReadVersionSuffix(
+        ParserState s,
+        Token atTok,
+        out int? version,
+        out Diagnostic? diag)
+    {
+        version = null;
+        var peek = s.Peek();
+        // Must be an integer literal immediately adjacent to '@' (no intervening
+        // whitespace). The lexer preserves column numbers; '@' has Length 1 so the
+        // next token must start at atTok.Column + 1.
+        if (peek.Kind != TokenKind.IntegerLiteral)
+        {
+            diag = new Diagnostic(
+                DiagnosticSeverity.Error,
+                RuleIds.Parse020,
+                "expected positive integer after '@'",
+                atTok.Span);
+            return false;
+        }
+        if (peek.Span.Column != atTok.Span.Column + 1)
+        {
+            diag = new Diagnostic(
+                DiagnosticSeverity.Error,
+                RuleIds.Parse020,
+                "whitespace is not allowed between '@' and the version number",
+                atTok.Span);
+            // Do not consume the literal; let the caller continue.
+            return false;
+        }
+        // Leading zero (e.g. "01") is rejected. NumberStyles.None forbids leading
+        // '+'/'-' and leading whitespace automatically; the lexer never includes
+        // those in the IntegerLiteral lexeme anyway, but a leading zero is a
+        // syntactically valid integer to the lexer and must be rejected here.
+        var lexeme = peek.Lexeme;
+        if (lexeme.Length > 1 && lexeme[0] == '0')
+        {
+            s.Consume();
+            diag = new Diagnostic(
+                DiagnosticSeverity.Error,
+                RuleIds.Parse020,
+                "version suffix must not have a leading zero",
+                atTok.Span);
+            return false;
+        }
+        if (!int.TryParse(lexeme, NumberStyles.None, CultureInfo.InvariantCulture, out var n) || n <= 0)
+        {
+            s.Consume();
+            diag = new Diagnostic(
+                DiagnosticSeverity.Error,
+                RuleIds.Parse020,
+                "version suffix must be a positive integer",
+                atTok.Span);
+            return false;
+        }
+        s.Consume();
+        version = n;
+        diag = null;
+        return true;
+    }
+
+    /// <summary>
+    /// Refuses an <c>@N</c> suffix at a parse position that is not permitted by
+    /// FR-100 (relation target, command <c>returns</c>). When the next token is
+    /// <c>@</c>, emits PARSE020 with <paramref name="contextMessage"/> and
+    /// consumes the malformed suffix so the rest of the production still parses.
+    /// </summary>
+    private static void RefuseVersionSuffix(ParserState s, string contextMessage)
+    {
+        if (s.Peek().Kind != TokenKind.At)
+        {
+            return;
+        }
+        var atTok = s.Consume();
+        s.Diagnostics.Add(new Diagnostic(
+            DiagnosticSeverity.Error,
+            RuleIds.Parse020,
+            contextMessage,
+            atTok.Span));
+        // Drain a directly-following integer literal so the suffix does not
+        // pollute downstream parsing. Column-adjacency is the same check used
+        // by TryReadVersionSuffix.
+        var peek = s.Peek();
+        if (peek.Kind == TokenKind.IntegerLiteral
+            && peek.Span.Column == atTok.Span.Column + 1)
+        {
+            s.Consume();
+        }
     }
 
     private static ImmutableArray<AnnotationDecl> ParseAnnotations(ParserState s)
@@ -717,7 +849,20 @@ public static class Parser
                 return new AnnotationStringValue(tok.Lexeme);
             case TokenKind.IntegerLiteral:
                 s.Consume();
-                return new AnnotationIntValue(long.Parse(tok.Lexeme, NumberStyles.Integer, CultureInfo.InvariantCulture));
+                // Guard against overflow on annotation arguments. long.Parse would
+                // throw OverflowException on inputs exceeding 9223372036854775807;
+                // emit PARSE021 and recover with 0 so the rest of the source still
+                // parses.
+                if (!long.TryParse(tok.Lexeme, NumberStyles.Integer, CultureInfo.InvariantCulture, out var iv))
+                {
+                    s.Diagnostics.Add(new Diagnostic(
+                        DiagnosticSeverity.Error,
+                        RuleIds.Parse021,
+                        "annotation integer value must be in -9223372036854775808..9223372036854775807 range",
+                        tok.Span));
+                    iv = 0;
+                }
+                return new AnnotationIntValue(iv);
             case TokenKind.DecimalLiteral:
                 s.Consume();
                 return new AnnotationDecimalValue(decimal.Parse(tok.Lexeme, NumberStyles.Number, CultureInfo.InvariantCulture));
@@ -739,7 +884,21 @@ public static class Parser
     private static int ParseInt(ParserState s)
     {
         var tok = s.Expect(TokenKind.IntegerLiteral);
-        return int.Parse(tok.Lexeme, NumberStyles.Integer, CultureInfo.InvariantCulture);
+        // FR-101 (and Phase 4 safety): an int.Parse on a multi-digit literal
+        // that exceeds Int32.MaxValue throws OverflowException, which would
+        // crash the compiler from user input. Emit PARSE020 and recover by
+        // pinning the value to 1 so downstream production still parses and
+        // a single bad number does not cascade into a parse cascade.
+        if (!int.TryParse(tok.Lexeme, NumberStyles.None, CultureInfo.InvariantCulture, out var n) || n <= 0)
+        {
+            s.Diagnostics.Add(new Diagnostic(
+                DiagnosticSeverity.Error,
+                RuleIds.Parse020,
+                "version number must be a positive integer in 1..2147483647 range",
+                tok.Span));
+            return 1;
+        }
+        return n;
     }
 
     private sealed class ParserState
@@ -765,6 +924,17 @@ public static class Parser
         public int? MaxDepthOverride { get; init; }
 
         public Token Peek() => _tokens[_pos];
+
+        /// <summary>
+        /// Look ahead <paramref name="offset"/> tokens without consuming. Returns the
+        /// final EndOfFile token when the offset runs off the end of the stream.
+        /// </summary>
+        public Token PeekAt(int offset)
+        {
+            int i = _pos + offset;
+            if (i >= _tokens.Length) i = _tokens.Length - 1;
+            return _tokens[i];
+        }
 
         public Token Consume()
         {

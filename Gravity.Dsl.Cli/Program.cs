@@ -47,7 +47,8 @@ internal static class Program
     {
         var parsed = ParseArgs(args, allowOutput: false);
         if (parsed is null) return 1;
-        var result = await CompilerPipeline.Check(parsed.Input, parsed.Emitters).ConfigureAwait(false);
+        if (!TryResolveAsOf(parsed.AsOfRaw, out var asOf)) return 1;
+        var result = await CompilerPipeline.Check(parsed.Input, asOf, parsed.Emitters).ConfigureAwait(false);
         PrintDiagnostics(result.Diagnostics);
         return result.Success ? 0 : 1;
     }
@@ -61,9 +62,36 @@ internal static class Program
             Console.Error.WriteLine("gravc: gen requires --output <dir>");
             return 1;
         }
-        var result = await CompilerPipeline.Gen(parsed.Input, parsed.Output!, parsed.Emitters).ConfigureAwait(false);
+        if (!TryResolveAsOf(parsed.AsOfRaw, out var asOf)) return 1;
+        var result = await CompilerPipeline.Gen(parsed.Input, parsed.Output!, asOf, parsed.Emitters).ConfigureAwait(false);
         PrintDiagnostics(result.Diagnostics);
         return result.Success ? 0 : 1;
+    }
+
+    /// <summary>
+    /// FR-141 / FR-142: resolve the <c>--as-of</c> value to a <see cref="DateOnly"/>.
+    /// When absent, the CLI reads <see cref="DateTime.UtcNow"/> — this is the ONLY
+    /// clock read in the entire repository; the compiler library (and every emitter)
+    /// stays clock-free per LD-7. The <c>BannedSymbolsFile</c> analyzer is attached
+    /// to every project except <c>Gravity.Dsl.Cli</c> (see <c>Directory.Build.props</c>),
+    /// so a stray <see cref="DateTime.UtcNow"/> in the compiler still fails the build.
+    /// </summary>
+    private static bool TryResolveAsOf(string? raw, out DateOnly asOf)
+    {
+        if (raw is { Length: > 0 })
+        {
+            if (!DateOnly.TryParseExact(
+                    raw, "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture, DateTimeStyles.None, out asOf))
+            {
+                Console.Error.WriteLine(
+                    "gravc " + CliRuleIds.Cli002 + ": --as-of value '" + raw + "' must be YYYY-MM-DD");
+                return false;
+            }
+            return true;
+        }
+        asOf = DateOnly.FromDateTime(DateTime.UtcNow);
+        return true;
     }
 
     private static void PrintDiagnostics(System.Collections.Immutable.ImmutableArray<Gravity.Dsl.Ast.Diagnostic> diags)
@@ -86,6 +114,7 @@ internal static class Program
     {
         string? input = null;
         string? output = null;
+        string? asOfRaw = null;
         var emitters = new List<string>();
         for (int i = 1; i < args.Length; i++)
         {
@@ -104,6 +133,10 @@ internal static class Program
                     if (++i >= args.Length) { Console.Error.WriteLine("gravc: --emitter requires a value"); return null; }
                     emitters.Add(args[i]);
                     break;
+                case "--as-of":
+                    if (++i >= args.Length) { Console.Error.WriteLine("gravc: --as-of requires a value"); return null; }
+                    asOfRaw = args[i];
+                    break;
                 default:
                     Console.Error.WriteLine("gravc: unknown argument '" + args[i] + "'");
                     return null;
@@ -114,7 +147,7 @@ internal static class Program
             Console.Error.WriteLine("gravc: --input <dir> is required");
             return null;
         }
-        return new ParsedArgs(input, output, emitters);
+        return new ParsedArgs(input, output, emitters, asOfRaw);
     }
 
     private static int UsageExit(int code, string? message = null)
@@ -127,9 +160,9 @@ internal static class Program
     private static void PrintUsage()
     {
         Console.Error.WriteLine("usage: gravc <command> [options]");
-        Console.Error.WriteLine("  gravc check --input <dir>");
-        Console.Error.WriteLine("  gravc gen --input <dir> --output <dir> [--emitter <name>]*");
+        Console.Error.WriteLine("  gravc check --input <dir> [--as-of YYYY-MM-DD]");
+        Console.Error.WriteLine("  gravc gen --input <dir> --output <dir> [--emitter <name>]* [--as-of YYYY-MM-DD]");
     }
 
-    private sealed record ParsedArgs(string Input, string? Output, List<string> Emitters);
+    private sealed record ParsedArgs(string Input, string? Output, List<string> Emitters, string? AsOfRaw);
 }

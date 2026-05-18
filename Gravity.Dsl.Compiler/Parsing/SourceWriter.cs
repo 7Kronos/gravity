@@ -273,7 +273,14 @@ public static class SourceWriter
         sb.Append(';');
     }
 
-    private static void WriteTypeRef(StringBuilder sb, TypeRef tr)
+    /// <summary>
+    /// Shared canonical type-ref renderer used by both the source emitter
+    /// (<see cref="SourceWriter"/>) and the diagnostic message builder
+    /// (<c>Versioning.TypeRefRenderer</c>). Centralising the formatting here
+    /// keeps the two call sites in sync — any future change to the canonical
+    /// "Name@N?[]" surface flows to both automatically.
+    /// </summary>
+    internal static void WriteTypeRef(StringBuilder sb, TypeRef tr)
     {
         switch (tr)
         {
@@ -283,6 +290,12 @@ public static class SourceWriter
                 break;
             case NamedTypeRef n:
                 sb.Append(n.Name);
+                // FR-100 / T108: emit '@N' after the name and before the '?'/'[]'
+                // modifiers when the source had a version suffix.
+                if (n.Version is { } v)
+                {
+                    sb.Append('@').Append(v.ToString(CultureInfo.InvariantCulture));
+                }
                 WriteTypeSuffix(sb, n.IsOptional, n.IsArray);
                 break;
         }
