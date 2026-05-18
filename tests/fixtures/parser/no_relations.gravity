@@ -1,0 +1,29 @@
+namespace fixtures;
+
+type SimpleResult { ok: Boolean; }
+
+entity Simple version 1 {
+    identity id: UUID;
+
+    properties {
+        name: String;
+    }
+
+    lifecycle {
+        states {
+            Created;
+        }
+        transitions {
+        }
+    }
+
+    events {
+        Created { at: DateTime; };
+    }
+
+    commands {
+        Create(name: String)
+            returns SimpleResult
+            with side_effect Created;
+    }
+}

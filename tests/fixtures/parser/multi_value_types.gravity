@@ -1,0 +1,9 @@
+namespace fixtures;
+
+type One { a: Int; }
+
+type Two { b: Long; c: String?; }
+
+type Three { d: Decimal; e: Boolean; f: Date; }
+
+enum Color { Red, Green, Blue }

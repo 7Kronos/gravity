@@ -1,0 +1,6 @@
+namespace site;
+
+import "A.gravity";
+import "B.gravity";
+
+type Use { c: Conflict; }

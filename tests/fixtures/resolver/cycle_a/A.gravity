@@ -1,0 +1,5 @@
+namespace cyc;
+
+import "../cycle_b/B.gravity";
+
+type Wrap { name: String; }

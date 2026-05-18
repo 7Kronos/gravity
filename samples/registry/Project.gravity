@@ -1,0 +1,75 @@
+namespace hr;
+
+import "Employee.gravity";
+
+type PlanResult     { ok: Boolean; message: String?; }
+type StartResult    { ok: Boolean; message: String?; }
+type HoldResult     { ok: Boolean; message: String?; }
+type ResumeResult   { ok: Boolean; message: String?; }
+type CompleteResult { ok: Boolean; message: String?; }
+type CancelResult   { ok: Boolean; message: String?; }
+
+entity Project version 1 {
+
+  identity id: UUID;
+
+  relations {
+    lead: Employee cardinality one;
+  }
+
+  properties {
+    name:             String;
+    code:             String;
+    start_date:       Date;
+    target_end_date:  Date?;
+  }
+
+  lifecycle {
+    states {
+      Planned, Active, OnHold, Completed, Cancelled;
+    }
+    transitions {
+      Planned   -> Active    on Started;
+      Active    -> OnHold    on Held;
+      OnHold    -> Active    on Resumed;
+      Active    -> Completed on Completed;
+      Active    -> Cancelled on Cancelled;
+      Planned   -> Cancelled on Cancelled;
+      OnHold    -> Cancelled on Cancelled;
+    }
+  }
+
+  events {
+    Started   { started_at: DateTime; };
+    Held      { held_at: DateTime; reason: String?; };
+    Resumed   { resumed_at: DateTime; };
+    Completed { completed_at: DateTime; };
+    Cancelled { cancelled_at: DateTime; reason: String; };
+  }
+
+  commands {
+    Plan(name: String, code: String, start_date: Date, target_end_date: Date?, lead_id: UUID)
+      returns PlanResult
+      with side_effect Started;
+
+    Start()
+      returns StartResult
+      with side_effect Started;
+
+    Hold(reason: String?)
+      returns HoldResult
+      with side_effect Held;
+
+    Resume()
+      returns ResumeResult
+      with side_effect Resumed;
+
+    Complete()
+      returns CompleteResult
+      with side_effect Completed;
+
+    Cancel(reason: String)
+      returns CancelResult
+      with side_effect Cancelled;
+  }
+}

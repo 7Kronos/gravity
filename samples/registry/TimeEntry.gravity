@@ -1,0 +1,64 @@
+namespace hr;
+
+import "Employee.gravity";
+import "Project.gravity";
+
+type SubmissionResult { ok: Boolean; message: String?; }
+type ApprovalResult   { ok: Boolean; message: String?; }
+type RejectionResult  { ok: Boolean; message: String?; }
+
+entity TimeEntry version 1 {
+
+  identity id: UUID;
+
+  relations {
+    employee:  Employee  cardinality one;
+    project:   Project   cardinality one;
+    submitter: Employee  cardinality one  semantic submitted_by;
+    approver:  Employee? cardinality one  semantic approved_by;
+  }
+
+  properties {
+    date:              Date;
+    hours:             Decimal;
+    billable:          Boolean;
+    description:       String?;
+    rejection_reason:  String?;
+  }
+
+  lifecycle {
+    states {
+      Draft, Submitted, Approved, Rejected, Reopened;
+    }
+    transitions {
+      Draft     -> Submitted on Submitted;
+      Submitted -> Approved  on Approved;
+      Submitted -> Rejected  on Rejected;
+      Rejected  -> Draft     on Resubmitted;
+      Approved  -> Reopened  on Reopened;
+      Reopened  -> Submitted on Submitted;
+    }
+  }
+
+  events {
+    Submitted   { submitted_at: DateTime; };
+    Approved    { approver_id: UUID; approved_at: DateTime; };
+    Rejected    { approver_id: UUID; reason: String; };
+    Resubmitted {};
+    Reopened    { reopener_id: UUID; reason: String; };
+  }
+
+  commands {
+    Submit()
+      returns SubmissionResult
+      with side_effect Submitted;
+
+    Approve(approver_id: UUID)
+      returns ApprovalResult
+      with side_effect Approved;
+
+    Reject(approver_id: UUID, reason: String)
+      returns RejectionResult
+      with side_effect Rejected;
+  }
+}

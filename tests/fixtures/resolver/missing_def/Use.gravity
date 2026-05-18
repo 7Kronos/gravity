@@ -1,0 +1,9 @@
+namespace md;
+
+entity Holder version 1 {
+    identity id: UUID;
+
+    properties {
+        s: NotDeclared;
+    }
+}

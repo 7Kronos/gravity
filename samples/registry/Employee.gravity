@@ -1,0 +1,73 @@
+namespace hr;
+
+type ContactInfo {
+  email:      String;
+  phone:      String?;
+  preferred:  ContactMethod;
+}
+
+enum ContactMethod { Email, Phone, None }
+
+enum ContractType { CDI, CDD, Freelance, Intern, Apprentice }
+
+type OnboardResult   { ok: Boolean; message: String?; }
+type ActivationResult { ok: Boolean; message: String?; }
+type LeaveResult     { ok: Boolean; message: String?; }
+type ReturnResult    { ok: Boolean; message: String?; }
+type TerminationResult { ok: Boolean; message: String?; }
+
+entity Employee version 1 {
+
+  identity id: UUID;
+
+  properties {
+    first_name:     String;
+    last_name:      String;
+    email:          String;
+    hire_date:      Date;
+    contract_type:  ContractType;
+    contact:        ContactInfo?;
+  }
+
+  lifecycle {
+    states {
+      Onboarding, Active, OnLeave, Terminated;
+    }
+    transitions {
+      Onboarding -> Active     on Activated;
+      Active     -> OnLeave    on LeaveStarted;
+      OnLeave    -> Active     on Returned;
+      Active     -> Terminated on Terminated;
+      OnLeave    -> Terminated on Terminated;
+    }
+  }
+
+  events {
+    Activated     { activated_at: DateTime; };
+    LeaveStarted  { started_at: DateTime; reason: String?; };
+    Returned      { returned_at: DateTime; };
+    Terminated    { terminated_at: DateTime; reason: String; };
+  }
+
+  commands {
+    Onboard(first_name: String, last_name: String, email: String, hire_date: Date, contract_type: ContractType)
+      returns OnboardResult
+      with side_effect Activated;
+
+    Activate()
+      returns ActivationResult
+      with side_effect Activated;
+
+    GoOnLeave(reason: String?)
+      returns LeaveResult
+      with side_effect LeaveStarted;
+
+    Return()
+      returns ReturnResult
+      with side_effect Returned;
+
+    Terminate(reason: String)
+      returns TerminationResult
+      with side_effect Terminated;
+  }
+}

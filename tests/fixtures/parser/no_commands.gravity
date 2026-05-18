@@ -1,0 +1,13 @@
+namespace fixtures;
+
+entity Quiet version 1 {
+    identity id: UUID;
+
+    properties {
+        label: String;
+    }
+
+    events {
+        Stamped { at: DateTime; };
+    }
+}

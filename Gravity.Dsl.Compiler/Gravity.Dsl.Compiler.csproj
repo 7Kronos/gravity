@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Gravity.Dsl.Ast\Gravity.Dsl.Ast.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Pidgin" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Gravity.Dsl.Ast\Gravity.Dsl.Ast.csproj" />
+    <ProjectReference Include="..\Gravity.Dsl.Compiler\Gravity.Dsl.Compiler.csproj" />
+    <ProjectReference Include="..\Gravity.Dsl.Emitter\Gravity.Dsl.Emitter.csproj" />
+    <ProjectReference Include="..\Gravity.Dsl.Emitter.CSharp\Gravity.Dsl.Emitter.CSharp.csproj" />
+    <ProjectReference Include="..\Gravity.Dsl.Cli\Gravity.Dsl.Cli.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
+  </ItemGroup>
+
+</Project>

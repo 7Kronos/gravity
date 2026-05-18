@@ -1,0 +1,29 @@
+# Build output
+bin/
+obj/
+out/
+gen/
+TestResults/
+
+# IDE/tooling
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userprefs
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# NuGet
+*.nupkg
+.nuget/
+
+# Local environment
+*.env
+.env.local
+
+# Agent runtime state
+.omc/

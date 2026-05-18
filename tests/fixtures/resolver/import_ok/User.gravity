@@ -1,0 +1,11 @@
+namespace ok;
+
+import "Defs.gravity";
+
+entity Holder version 1 {
+    identity id: UUID;
+
+    properties {
+        s: Shared;
+    }
+}

@@ -1,0 +1,9 @@
+namespace fixtures;
+
+entity Tiny version 1 {
+    identity id: UUID;
+
+    events {
+        Ping {};
+    }
+}

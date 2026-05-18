@@ -1,0 +1,13 @@
+P:System.DateTime.Now; non-deterministic clock; emitter output must be deterministic
+P:System.DateTime.UtcNow; non-deterministic clock; emitter output must be deterministic
+P:System.DateTimeOffset.Now; non-deterministic clock; emitter output must be deterministic
+P:System.DateTimeOffset.UtcNow; non-deterministic clock; emitter output must be deterministic
+M:System.Guid.NewGuid; non-deterministic identifier; emitter output must be deterministic
+P:System.Environment.MachineName; environment-dependent value; emitter output must be deterministic
+P:System.Environment.UserName; environment-dependent value; emitter output must be deterministic
+M:System.IO.Path.GetTempFileName; environment-dependent value; emitter output must be deterministic
+M:System.IO.Path.GetTempPath; environment-dependent value; emitter output must be deterministic
+T:System.Random; non-deterministic randomness; emitter output must be deterministic
+M:System.String.ToUpper; culture-sensitive; use ToUpperInvariant
+M:System.String.ToLower; culture-sensitive; use ToLowerInvariant
+M:System.String.Compare(System.String,System.String); culture-sensitive; pass a StringComparison

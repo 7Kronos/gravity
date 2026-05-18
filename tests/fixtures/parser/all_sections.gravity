@@ -1,0 +1,35 @@
+namespace fixtures;
+
+type AllResult { ok: Boolean; message: String?; }
+
+entity AllSections version 1 {
+    identity id: UUID;
+
+    relations {
+        peer: AllSections cardinality one;
+    }
+
+    properties {
+        name: String;
+        count: Int;
+    }
+
+    lifecycle {
+        states {
+            A, B;
+        }
+        transitions {
+            A -> B on Moved;
+        }
+    }
+
+    events {
+        Moved { at: DateTime; };
+    }
+
+    commands {
+        Move()
+            returns AllResult
+            with side_effect Moved;
+    }
+}

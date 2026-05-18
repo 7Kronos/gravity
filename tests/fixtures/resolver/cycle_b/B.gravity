@@ -1,0 +1,5 @@
+namespace cyc;
+
+import "../cycle_a/A.gravity";
+
+type Other { name: String; }

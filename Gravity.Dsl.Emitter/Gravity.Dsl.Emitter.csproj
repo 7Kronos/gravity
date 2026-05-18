@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>Gravity.Dsl.Emitter</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Gravity DSL contributors</Authors>
+    <Description>IEmitter contract and emitter host for the Gravity DSL.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Gravity.Dsl.Ast\Gravity.Dsl.Ast.csproj" />
+    <ProjectReference Include="..\Gravity.Dsl.Compiler\Gravity.Dsl.Compiler.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,32 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Parser library (LD-1, Pidgin); latest stable 3.x at lock date. -->
+    <PackageVersion Include="Pidgin" Version="3.5.1" />
+
+    <!-- Roslyn workspaces for C# emitter formatting. Pinned to 4.14.0 (latest stable 4.x supporting net9.0) -->
+    <!-- per plan.md §6 risk register: pin a specific minor; bump deliberately when goldens change. -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" />
+
+    <!-- YAML loader for .gravity.config. Pinned to last 16.x; 17.x exists but plan.md calls for 16.x. -->
+    <PackageVersion Include="YamlDotNet" Version="16.3.0" />
+
+    <!-- CLI surface (gravc). Pinned per plan.md / executor brief. -->
+    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+
+    <!-- Banned-API analyzer for determinism enforcement (plan.md §4). -->
+    <!-- Only previews ship under 3.x as of lock date; pin the most recent 3.11 preview. -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.11.0-beta1.26075.3" />
+
+    <!-- Test stack. FluentAssertions pinned to 7.2.2 (last Apache-2.0 release; 8.x switched to a commercial license). -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="FluentAssertions" Version="7.2.2" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,5 @@
+namespace mi;
+
+import "Nowhere.gravity";
+
+type Lonely { ok: Boolean; }
