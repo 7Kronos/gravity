@@ -18,6 +18,12 @@
     <!-- CLI surface (gravc). Pinned per plan.md / executor brief. -->
     <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
 
+    <!-- MSBuild task base classes (Gravity.Dsl.MsBuild). Pinned to 17.14.8 — NU1903-clean
+         (17.11.4 has known GHSA-w3q9-fxm7-j8fq). Broadly compatible with every dotnet SDK 9.0+.
+         ExcludeAssets="runtime" on the consuming PackageReference keeps this assembly out of the
+         packed tasks/net9.0/ tree (MSBuild's own ALC provides it). -->
+    <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="17.14.8" />
+
     <!-- Banned-API analyzer for determinism enforcement (plan.md §4). -->
     <!-- Only previews ship under 3.x as of lock date; pin the most recent 3.11 preview. -->
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.11.0-beta1.26075.3" />

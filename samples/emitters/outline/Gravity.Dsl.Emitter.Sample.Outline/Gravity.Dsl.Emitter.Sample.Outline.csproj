@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Phase 9b — reference sample emitter (LD-10, LD-12). Intentionally minimal:
+    one Markdown file per entity describing identity / relations / properties /
+    lifecycle / events / commands. Exists as a copy-paste template for community
+    emitter authors; the `.Sample.` segment in the NuGet id and the `samples/`
+    repo location are permanent "not a production target" signals.
+    See specs/003-phase-9-build-integration/spec.md FR-220..FR-225.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>Gravity.Dsl.Emitter.Sample.Outline</RootNamespace>
+    <AssemblyName>Gravity.Dsl.Emitter.Sample.Outline</AssemblyName>
+
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- FR-222: pack determinism inherits from Directory.Build.props; restated here
+         so a reader of the sample csproj sees the contract on-screen. -->
+    <Deterministic>true</Deterministic>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+    <!-- NuGet metadata. LD-12 — the `.Sample.` segment is permanent and signals
+         "sample, not reference" wherever the package surfaces. -->
+    <PackageId>Gravity.Dsl.Emitter.Sample.Outline</PackageId>
+    <Description>Sample emitter for Gravity DSL — emits Markdown outlines per entity. Minimal IEmitter implementation; copy-paste template for community emitters.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageTags>gravity dsl emitter sample markdown</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\Gravity.Dsl.Ast\Gravity.Dsl.Ast.csproj" />
+    <ProjectReference Include="..\..\..\..\Gravity.Dsl.Emitter\Gravity.Dsl.Emitter.csproj" />
+  </ItemGroup>
+
+</Project>

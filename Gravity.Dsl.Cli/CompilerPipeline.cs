@@ -18,7 +18,7 @@ namespace Gravity.Dsl.Cli;
 /// Split out from <see cref="Program"/> so tests can invoke the gen workflow
 /// without process boundaries (AC-3 / T052).
 /// </summary>
-internal static class CompilerPipeline
+public static class CompilerPipeline
 {
     /// <summary>Outcome of a <see cref="Check"/> or <see cref="Gen"/> invocation.</summary>
     public sealed record PipelineResult(
@@ -117,6 +117,136 @@ internal static class CompilerPipeline
         diags.AddRange(run.Diagnostics);
 
         return new PipelineResult(!HasFatalError(diags), diags.ToImmutable());
+    }
+
+    /// <summary>
+    /// Full gen workflow using an explicit list of <c>.gravity</c> source files (FR-234, LD-13).
+    /// Used by the MSBuild task (<c>GravityDslGenTask</c>) so per-item <c>&lt;GravityDsl&gt;</c>
+    /// metadata can be honoured (FR-202). The directory-scanning overload remains the CLI's
+    /// default entry; this overload is additive public surface under the LD-13 stability contract.
+    /// </summary>
+    /// <param name="inputs">Absolute (or working-dir-relative) paths to <c>.gravity</c> source files.</param>
+    /// <param name="outputRoot">Output directory; created if missing.</param>
+    /// <param name="currentDate">Date passed to <see cref="Validator.Validate"/> for
+    /// Phase 8 deprecation-window evaluation (FR-140).</param>
+    /// <param name="configFile">Optional explicit path to a <c>.gravity.config</c> file.
+    /// When null, defaults to a <c>.gravity.config</c> sibling of the first source file.</param>
+    /// <param name="emitterFilter">Optional emitter whitelist.</param>
+    public static async Task<PipelineResult> Gen(
+        IList<string> inputs,
+        string outputRoot,
+        DateOnly currentDate,
+        string? configFile = null,
+        IReadOnlyList<string>? emitterFilter = null)
+    {
+        if (inputs is null) throw new ArgumentNullException(nameof(inputs));
+        if (outputRoot is null) throw new ArgumentNullException(nameof(outputRoot));
+
+        var diags = ImmutableArray.CreateBuilder<Diagnostic>();
+        var (files, parseDiags) = ParseFiles(inputs);
+        diags.AddRange(parseDiags);
+        if (HasFatalError(parseDiags))
+        {
+            return new PipelineResult(false, diags.ToImmutable());
+        }
+
+        // Resolver requires a root for FQN computation. Use the longest common ancestor
+        // of the input set so namespace mapping stays stable across CLI / MSBuild paths.
+        var resolverRoot = ComputeResolverRoot(inputs);
+        var resolved = Resolver.Resolve(files, resolverRoot);
+        diags.AddRange(resolved.Diagnostics);
+        if (resolved.Model is null)
+        {
+            return new PipelineResult(false, diags.ToImmutable());
+        }
+
+        var registry = BuildRegistry();
+        diags.AddRange(registry.Diagnostics);
+
+        var validatorDiags = Validator.Validate(resolved.Model, registry.ClaimedAnnotationNamespaces(), currentDate);
+        diags.AddRange(validatorDiags);
+        if (HasFatalError(validatorDiags))
+        {
+            return new PipelineResult(false, diags.ToImmutable());
+        }
+
+        var configPath = ResolveConfigPath(configFile, resolverRoot);
+        var configs = LoadConfigs(configPath, registry, diags);
+        if (HasFatalError(diags))
+        {
+            return new PipelineResult(false, diags.ToImmutable());
+        }
+
+        var filtered = ApplyEmitterFilter(configs, emitterFilter);
+        var run = await EmitterHost.Run(resolved.Model, filtered, registry, outputRoot).ConfigureAwait(false);
+        diags.AddRange(run.Diagnostics);
+
+        return new PipelineResult(!HasFatalError(diags), diags.ToImmutable());
+    }
+
+    private static (List<SourceFile> Files, List<Diagnostic> Diags) ParseFiles(IList<string> inputs)
+    {
+        var diags = new List<Diagnostic>();
+        var files = new List<SourceFile>();
+        // Sort ordinally so iteration order matches the directory-scanning overload's behaviour.
+        var sorted = inputs.ToArray();
+        Array.Sort(sorted, StringComparer.Ordinal);
+        foreach (var src in sorted)
+        {
+            if (!File.Exists(src))
+            {
+                diags.Add(new Diagnostic(
+                    DiagnosticSeverity.Error,
+                    "CLI001",
+                    "input file does not exist: " + src,
+                    new SourceSpan(src, 1, 1, 0)));
+                continue;
+            }
+            var text = File.ReadAllText(src);
+            var parsed = Parser.Parse(src, text);
+            diags.AddRange(parsed.Diagnostics);
+            if (parsed.File is not null)
+            {
+                files.Add(parsed.File);
+            }
+        }
+        return (files, diags);
+    }
+
+    private static string ComputeResolverRoot(IList<string> inputs)
+    {
+        if (inputs.Count == 0) return Directory.GetCurrentDirectory();
+        if (inputs.Count == 1) return Path.GetDirectoryName(Path.GetFullPath(inputs[0])) ?? Directory.GetCurrentDirectory();
+
+        // Longest common ancestor of all input file directories. MSBuild may group
+        // <GravityDsl> items from different directories into the same (Output, Emitter)
+        // bucket; taking the first directory after a sort silently produces wrong FQNs
+        // when those directories diverge.
+        var firstDir = Path.GetDirectoryName(Path.GetFullPath(inputs[0])) ?? string.Empty;
+        var commonParts = firstDir.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            .ToList();
+        for (int i = 1; i < inputs.Count; i++)
+        {
+            var dir = Path.GetDirectoryName(Path.GetFullPath(inputs[i])) ?? string.Empty;
+            var parts = dir.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            int common = 0;
+            while (common < commonParts.Count && common < parts.Length
+                   && string.Equals(commonParts[common], parts[common], StringComparison.Ordinal))
+                common++;
+            commonParts = commonParts.Take(common).ToList();
+            if (commonParts.Count == 0) break;
+        }
+        var result = string.Join(Path.DirectorySeparatorChar, commonParts);
+        return string.IsNullOrEmpty(result) ? Directory.GetCurrentDirectory() : result;
+    }
+
+    private static string ResolveConfigPath(string? explicitConfig, string resolverRoot)
+    {
+        if (!string.IsNullOrEmpty(explicitConfig))
+        {
+            return Path.GetFullPath(explicitConfig);
+        }
+        return Path.Combine(resolverRoot, ".gravity.config");
     }
 
     private static EmitterRegistry BuildRegistry()

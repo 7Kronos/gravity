@@ -70,27 +70,19 @@ internal static class Program
 
     /// <summary>
     /// FR-141 / FR-142: resolve the <c>--as-of</c> value to a <see cref="DateOnly"/>.
-    /// When absent, the CLI reads <see cref="DateTime.UtcNow"/> — this is the ONLY
-    /// clock read in the entire repository; the compiler library (and every emitter)
-    /// stays clock-free per LD-7. The <c>BannedSymbolsFile</c> analyzer is attached
-    /// to every project except <c>Gravity.Dsl.Cli</c> (see <c>Directory.Build.props</c>),
-    /// so a stray <see cref="DateTime.UtcNow"/> in the compiler still fails the build.
+    /// Delegates to <see cref="MsBuildDateResolver.TryResolve"/> (plan.md §3.8); the
+    /// helper is the one allowed <see cref="DateTime.UtcNow"/> call site and is shared
+    /// verbatim with the MSBuild task so the two entry points cannot drift on date
+    /// defaulting (LD-7 + LD-11 "Build integration parity").
     /// </summary>
     private static bool TryResolveAsOf(string? raw, out DateOnly asOf)
     {
-        if (raw is { Length: > 0 })
+        if (!MsBuildDateResolver.TryResolve(raw, out asOf, out var error))
         {
-            if (!DateOnly.TryParseExact(
-                    raw, "yyyy-MM-dd",
-                    CultureInfo.InvariantCulture, DateTimeStyles.None, out asOf))
-            {
-                Console.Error.WriteLine(
-                    "gravc " + CliRuleIds.Cli002 + ": --as-of value '" + raw + "' must be YYYY-MM-DD");
-                return false;
-            }
-            return true;
+            Console.Error.WriteLine(
+                "gravc " + CliRuleIds.Cli002 + ": --as-of " + error);
+            return false;
         }
-        asOf = DateOnly.FromDateTime(DateTime.UtcNow);
         return true;
     }
 

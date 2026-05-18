@@ -7,7 +7,7 @@ namespace Gravity.Dsl.Cli;
 /// from this set so analysis tooling can distinguish "compiler said no" from
 /// "CLI driver said no".
 /// </summary>
-internal static class CliRuleIds
+public static class CliRuleIds
 {
     /// <summary>
     /// Malformed <c>--as-of YYYY-MM-DD</c> value (FR-142). Emitted before any

@@ -14,13 +14,20 @@
 
   <!--
     BannedSymbolsFile analyzer is attached to every project EXCEPT
-    Gravity.Dsl.Cli and Gravity.Dsl.Tests. The CLI is the single locus that
-    may read DateTime.UtcNow (FR-141 / LD-7); the test project is exempt
-    per the Phase 0–3 convention. The compiler, AST, and emitter projects
-    remain locked down so a stray clock read in any of them fails the build.
+    Gravity.Dsl.Cli, Gravity.Dsl.Tests, and Gravity.Dsl.MsBuild.
+    - Gravity.Dsl.Cli: the CLI is the single locus that may read DateTime.UtcNow
+      for the as-of flag defaulting (FR-141 / LD-7).
+    - Gravity.Dsl.Tests: tests need flexibility per the Phase 0–3 convention.
+    - Gravity.Dsl.MsBuild: the MSBuild task is a CLI-equivalent entry point and
+      reads DateTime.UtcNow for `<GravityDslAsOf>` defaulting (FR-233; spec
+      §4.4 LD-13 / plan.md §3.8).
+    The list is exact-equality only; a future Gravity.Dsl.MsBuild.X sibling
+    would NOT inherit the exemption by accident.
+    The compiler, AST, and emitter projects remain locked down so a stray
+    clock read in any of them fails the build.
   -->
   <Choose>
-    <When Condition=" '$(MSBuildProjectName)' != 'Gravity.Dsl.Tests' AND '$(MSBuildProjectName)' != 'Gravity.Dsl.Cli' ">
+    <When Condition=" '$(MSBuildProjectName)' != 'Gravity.Dsl.Tests' AND '$(MSBuildProjectName)' != 'Gravity.Dsl.Cli' AND '$(MSBuildProjectName)' != 'Gravity.Dsl.MsBuild' ">
       <ItemGroup>
         <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers">
           <PrivateAssets>all</PrivateAssets>

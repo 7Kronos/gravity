@@ -1,0 +1,98 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Phase 9 — MSBuild task package (Gravity.Dsl.MsBuild). Consumers add this via
+    <PackageReference> and `dotnet build` runs `.gravity` codegen automatically.
+    See specs/003-phase-9-build-integration/spec.md FR-210..FR-213, AC-9.1.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>Gravity.Dsl.MsBuild</RootNamespace>
+    <AssemblyName>Gravity.Dsl.MsBuild</AssemblyName>
+
+    <!-- FR-210 / FR-213: MSBuild task package, not a runtime library. -->
+    <IsPackable>true</IsPackable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- NU5128: "no lib folder" is intentional; build assets live under buildTransitive/.
+         NU1903: Microsoft.Build.Utilities.Core has GHSA-w3q9-fxm7-j8fq, but ExcludeAssets="runtime"
+         below means the vulnerable runtime DLL is never bundled into our package — MSBuild's
+         own AssemblyLoadContext provides the assembly at task-load time, so the advisory does
+         not apply to our distribution. Suppress the audit warning here only. -->
+    <NoWarn>$(NoWarn);NU5128;NU1903</NoWarn>
+
+    <!-- FR-212: pack-determinism settings. Bundle every dependency under tasks/net9.0/
+         (the task loads against MSBuild's AssemblyLoadContext, not the consumer graph). -->
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+    <Deterministic>true</Deterministic>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+    <!-- LOAD-BEARING: MSBuild loads tasks via <UsingTask AssemblyFile="..."> which uses a
+         flat assembly loader — NOT the deps.json mechanism. Transitive NuGet runtime deps
+         (Pidgin, YamlDotNet, Roslyn workspaces) must be physically present alongside the
+         task DLL. CopyLocalLockFileAssemblies forces every transitive lock-file assembly
+         to be copied to the build output so the PackTaskFiles glob below sweeps them all
+         into tasks/net9.0/. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+
+    <!-- Modern hook for packing the task assembly + dep closure under tasks/net9.0/.
+         NuGet calls our PackTaskFiles target during pack to gather TfmSpecificPackageFile
+         items; @(TfmSpecificPackageFile) is the supported integration point (the old
+         <None Pack="true"> pattern does not flow through IncludeBuildOutput=false). -->
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackTaskFiles</TargetsForTfmSpecificContentInPackage>
+
+    <!-- NuGet metadata. -->
+    <PackageId>Gravity.Dsl.MsBuild</PackageId>
+    <Description>MSBuild target for Gravity DSL — codegen runs as a BeforeBuild step on dotnet build.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageTags>gravity dsl msbuild codegen</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- FR-230: the task shares the compiler + emitter host with the CLI. PrivateAssets=all
+         keeps these out of consumer-facing dependency graphs; the closure is bundled
+         under tasks/net9.0/ by the PackTaskAssemblies target below. -->
+    <ProjectReference Include="..\Gravity.Dsl.Ast\Gravity.Dsl.Ast.csproj"                       PrivateAssets="all" />
+    <ProjectReference Include="..\Gravity.Dsl.Compiler\Gravity.Dsl.Compiler.csproj"             PrivateAssets="all" />
+    <ProjectReference Include="..\Gravity.Dsl.Emitter\Gravity.Dsl.Emitter.csproj"               PrivateAssets="all" />
+    <ProjectReference Include="..\Gravity.Dsl.Emitter.CSharp\Gravity.Dsl.Emitter.CSharp.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Gravity.Dsl.Cli\Gravity.Dsl.Cli.csproj"                       PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- LOAD-BEARING: ExcludeAssets="runtime" keeps Microsoft.Build.Utilities.Core.dll out
+         of the build output (and therefore out of tasks/net9.0/ in the .nupkg). MSBuild's
+         own AssemblyLoadContext provides this assembly at runtime; bundling it would
+         produce ALC collision warnings. See plan.md §3.5 and AC-9.1. -->
+    <PackageReference Include="Microsoft.Build.Utilities.Core"
+                      PrivateAssets="all"
+                      ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- FR-210: build assets are shipped under buildTransitive/ only (no legacy build/ mirror). -->
+    <None Include="buildTransitive\Gravity.Dsl.MsBuild.props"
+          Pack="true" PackagePath="buildTransitive\Gravity.Dsl.MsBuild.props" />
+    <None Include="buildTransitive\Gravity.Dsl.MsBuild.targets"
+          Pack="true" PackagePath="buildTransitive\Gravity.Dsl.MsBuild.targets" />
+  </ItemGroup>
+
+  <!--
+    Pack the task assembly + its full dependency closure under tasks/net9.0/. Invoked by
+    NuGet via TargetsForTfmSpecificContentInPackage (declared in the property group above);
+    @(TfmSpecificPackageFile) is the documented integration point and survives
+    IncludeBuildOutput=false. The glob picks up every .dll dropped into the build output
+    by the <ProjectReference>s above; Microsoft.Build.Utilities.Core is kept out via
+    ExcludeAssets="runtime" so it never lands here.
+  -->
+  <Target Name="PackTaskFiles" DependsOnTargets="Build">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(OutputPath)*.dll" PackagePath="tasks/net9.0/" />
+    </ItemGroup>
+  </Target>
+
+</Project>

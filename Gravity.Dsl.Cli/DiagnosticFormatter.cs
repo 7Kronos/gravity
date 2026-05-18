@@ -8,7 +8,7 @@ namespace Gravity.Dsl.Cli;
 /// <c>path:line:col: severity ruleId: message</c> format used by the gravc CLI
 /// and asserted by AC-7.
 /// </summary>
-internal static class DiagnosticFormatter
+public static class DiagnosticFormatter
 {
     /// <summary>Format a single diagnostic for stderr/stdout consumption.</summary>
     public static string Format(Diagnostic diagnostic)

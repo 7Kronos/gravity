@@ -1,0 +1,36 @@
+<Project>
+
+  <!--
+    Gravity DSL MSBuild integration — targets (T204, plan.md §3.2).
+    Declares the GravityDslGenerate target hooked before CoreCompile, and the
+    UsingTask that resolves the GravityDslGenTask assembly inside the package layout.
+    T204b adds Inputs/Outputs incremental-build keys + a stamp-file Touch so
+    back-to-back `dotnet build` invocations against unchanged sources skip the
+    target entirely (FR-208 / AC-9.15).
+  -->
+
+  <UsingTask TaskName="Gravity.Dsl.MsBuild.GravityDslGenTask"
+             AssemblyFile="$(MSBuildThisFileDirectory)..\tasks\net9.0\Gravity.Dsl.MsBuild.dll" />
+
+  <Target Name="GravityDslGenerate"
+          BeforeTargets="CoreCompile"
+          Condition=" '@(GravityDsl)' != '' "
+          Inputs="@(GravityDsl)"
+          Outputs="$(GravityDslOutputDir)\.gravity-stamp">
+    <GravityDslGenTask Sources="@(GravityDsl)"
+                       OutputDir="$(GravityDslOutputDir)"
+                       ConfigFile="$(GravityDslConfig)"
+                       AsOf="$(GravityDslAsOf)"
+                       ProjectDirectory="$(MSBuildProjectDirectory)" />
+    <!-- FR-208: stamp file written last so MSBuild's Inputs/Outputs comparison can short-circuit
+         the next build. AlwaysCreate=true so the file is touched even on no-codegen runs. -->
+    <Touch Files="$(GravityDslOutputDir)\.gravity-stamp" AlwaysCreate="true" />
+    <ItemGroup>
+      <!-- Pick up generated C# (Phase 0–3 reference emitter output). -->
+      <Compile Include="$(GravityDslOutputDir)\csharp\**\*.cs" Exclude="@(Compile)" />
+      <FileWrites Include="$(GravityDslOutputDir)\**\*" />
+      <FileWrites Include="$(GravityDslOutputDir)\.gravity-stamp" />
+    </ItemGroup>
+  </Target>
+
+</Project>

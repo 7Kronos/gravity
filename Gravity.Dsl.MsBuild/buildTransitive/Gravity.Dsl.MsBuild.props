@@ -1,0 +1,32 @@
+<Project>
+
+  <!--
+    Gravity DSL MSBuild integration — props (FR-200, FR-202, plan.md §3.1).
+    Imported automatically by NuGet at the top of the consuming .csproj. Declares the
+    <GravityDsl> item type, default property values, and the default item glob.
+  -->
+
+  <PropertyGroup>
+    <!-- FR-200: default include glob. Consumers override by setting this property
+         before the package's props import, or by setting
+         <GravityDslDisableDefaultItems>true</…> for fully-explicit item lists. -->
+    <GravityDslDefaultIncludePattern Condition=" '$(GravityDslDefaultIncludePattern)' == '' ">**/*.gravity</GravityDslDefaultIncludePattern>
+
+    <!-- FR-251: generated artifacts land under $(IntermediateOutputPath)Generated/<emitter>/. -->
+    <GravityDslOutputDir Condition=" '$(GravityDslOutputDir)' == '' ">$(IntermediateOutputPath)Generated</GravityDslOutputDir>
+
+    <!-- FR-200: opt-out for projects with fully-explicit <GravityDsl Include="..." /> lists. -->
+    <GravityDslDisableDefaultItems Condition=" '$(GravityDslDisableDefaultItems)' == '' ">false</GravityDslDisableDefaultItems>
+  </PropertyGroup>
+
+  <!--
+    Default item group. The condition '@(GravityDsl)' == '' lets an explicit
+    <GravityDsl Include="..." /> in the consumer's csproj suppress the implicit
+    include without requiring <GravityDslDisableDefaultItems>true</…>.
+  -->
+  <ItemGroup Condition=" '$(GravityDslDisableDefaultItems)' != 'true' ">
+    <GravityDsl Include="$(GravityDslDefaultIncludePattern)"
+                Condition=" '@(GravityDsl)' == '' " />
+  </ItemGroup>
+
+</Project>
