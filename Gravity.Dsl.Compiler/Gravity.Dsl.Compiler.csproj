@@ -1,5 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>Gravity.Dsl.Compiler</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Gravity DSL contributors</Authors>
+    <Description>Gravity DSL compiler core — lexing, parsing, resolution, validation, and AST construction over the Pidgin parser combinator stack.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageTags>gravity dsl compiler parser</PackageTags>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Gravity.Dsl.Ast\Gravity.Dsl.Ast.csproj" />
   </ItemGroup>

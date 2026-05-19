@@ -14,7 +14,10 @@
     <RootNamespace>Gravity.Dsl.Emitter.Sample.Outline</RootNamespace>
     <AssemblyName>Gravity.Dsl.Emitter.Sample.Outline</AssemblyName>
 
-    <IsPackable>true</IsPackable>
+    <!-- Sample, not a published reference: ship the source in `samples/` for
+         copy-paste; do NOT publish to NuGet (0.1.0-alpha2 was an inadvertent
+         publish from the first release run; delist via nuget.org if regretted). -->
+    <IsPackable>false</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <!-- FR-222: pack determinism inherits from Directory.Build.props; restated here
