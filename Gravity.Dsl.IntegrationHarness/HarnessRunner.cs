@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Xml;
 using Gravity.Dsl.IntegrationHarness.Shared;
@@ -34,9 +35,33 @@ public sealed class HarnessRunner
         var outDir = _opts.ResolveOutDir(_repoRoot);
         Directory.CreateDirectory(outDir);
 
+        // FR-3000: apply --filter as an ordinal, case-sensitive substring match against
+        // SubcommandName. Substring (not exact-token) is deliberate so '--filter 9.1' can
+        // select the 9.11..9.15 family; pass the full subcommand name for an exact match.
+        // Only meaningful in run-all mode; the run-one path bypasses RunAll entirely.
+        var effective = subcommands;
+        if (!string.IsNullOrEmpty(_opts.Filter))
+        {
+            var filter = _opts.Filter;
+            var filtered = new List<ISubcommand>();
+            foreach (var s in subcommands)
+            {
+                if (s.SubcommandName.Contains(filter, StringComparison.Ordinal))
+                    filtered.Add(s);
+            }
+            if (filtered.Count == 0)
+            {
+                Console.Error.Write("[harness] ERROR: --filter '" + filter
+                    + "' excluded every subcommand. Available subcommand names: "
+                    + string.Join(", ", subcommands.Select(s => s.SubcommandName)) + "\n");
+                return 2;
+            }
+            effective = filtered;
+        }
+
         var results = new List<(ISubcommand Sub, SubcommandResult Result, string LogPath)>();
 
-        foreach (var sub in subcommands)
+        foreach (var sub in effective)
         {
             var scratchDir = ScratchDir.For(sub.SubcommandName, _repoRoot);
             var logPath = Path.Combine(outDir, sub.SubcommandName.Replace("/", "-", StringComparison.Ordinal) + ".log");
@@ -45,7 +70,7 @@ public sealed class HarnessRunner
             SubcommandResult result;
             try
             {
-                result = sub.Run(scratchDir, _repoRoot, log);
+                result = sub.Run(scratchDir, _repoRoot, log, _opts.Config);
             }
             catch (Exception ex)
             {
@@ -113,7 +138,7 @@ public sealed class HarnessRunner
         SubcommandResult result;
         try
         {
-            result = sub.Run(scratchDir, _repoRoot, log);
+            result = sub.Run(scratchDir, _repoRoot, log, _opts.Config);
         }
         catch (Exception ex)
         {

@@ -170,9 +170,9 @@ public sealed class HarnessLogTests
         }
 
         public Gravity.Dsl.IntegrationHarness.Subcommands.SubcommandResult Run(
-            string scratchDir, string workspaceRoot, HarnessLog log)
+            string scratchDir, string workspaceRoot, HarnessLog log, string config)
         {
-            log.WriteToFile("[stub] " + SubcommandName + " called");
+            log.WriteToFile("[stub] " + SubcommandName + " called; config=" + config);
             return _pass
                 ? Gravity.Dsl.IntegrationHarness.Subcommands.SubcommandResult.Pass()
                 : Gravity.Dsl.IntegrationHarness.Subcommands.SubcommandResult.Fail(

@@ -19,9 +19,9 @@ public sealed class NoGlobalToolSubcommand : ISubcommand
     public string AcId => "9.14";
 
     /// <inheritdoc/>
-    public SubcommandResult Run(string scratchDir, string workspaceRoot, HarnessLog log)
+    public SubcommandResult Run(string scratchDir, string workspaceRoot, HarnessLog log, string config)
     {
-        log.WriteToFile("[NoGlobalTool] starting; scratchDir=" + scratchDir);
+        log.WriteToFile("[NoGlobalTool] starting; scratchDir=" + scratchDir + " config=" + config);
 
         // Step 1: assert gravc is NOT installed as a global tool.
         var (toolExit, toolStdout, toolStderr) = ProcessRunner.RunDotnetCapture(
@@ -52,20 +52,24 @@ public sealed class NoGlobalToolSubcommand : ISubcommand
         var msbuildCsproj = Path.Combine(
             workspaceRoot, "Gravity.Dsl.MsBuild", "Gravity.Dsl.MsBuild.csproj");
 
-        log.WriteToFile("[NoGlobalTool] packing Gravity.Dsl.MsBuild");
+        log.WriteToFile("[NoGlobalTool] packing Gravity.Dsl.MsBuild -c " + config);
         var (packExit, packStdout, packStderr) = ProcessRunner.RunDotnetCapture(
-            "pack \"" + msbuildCsproj + "\" -c Release -o \"" + localFeed + "\" --nologo",
+            "pack \"" + msbuildCsproj + "\" -c " + config + " -o \"" + localFeed + "\" --nologo",
             workspaceRoot);
         log.WriteToFile("pack exit=" + packExit + "\n" + packStdout + "\n" + packStderr);
         if (packExit != 0)
             return SubcommandResult.Fail(HarnessRuleIds.Harn004,
                 "dotnet pack failed with exit " + packExit, localFeed, packExit);
 
-        var nupkgFiles = Directory.GetFiles(localFeed, "Gravity.Dsl.MsBuild.*.nupkg");
-        if (nupkgFiles.Length == 0)
-            return SubcommandResult.Fail(HarnessRuleIds.Harn004,
-                "No Gravity.Dsl.MsBuild .nupkg found in " + localFeed);
-        var packageVersion = ExtractVersion(nupkgFiles[0]);
+        string packageVersion;
+        try
+        {
+            packageVersion = NupkgLookup.ExtractVersion(NupkgLookup.FindMsBuildNupkg(localFeed));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return SubcommandResult.Fail(HarnessRuleIds.Harn004, ex.Message);
+        }
 
         var consumerDir = Path.Combine(scratchDir, "consumer");
         Directory.CreateDirectory(consumerDir);
@@ -98,14 +102,5 @@ public sealed class NoGlobalToolSubcommand : ISubcommand
 
         log.WriteToFile("[NoGlobalTool] PASS");
         return SubcommandResult.Pass();
-    }
-
-    private static string ExtractVersion(string nupkgPath)
-    {
-        var filename = Path.GetFileNameWithoutExtension(nupkgPath);
-        var prefix = "Gravity.Dsl.MsBuild.";
-        return filename.StartsWith(prefix, StringComparison.Ordinal)
-            ? filename.Substring(prefix.Length)
-            : "0.1.0";
     }
 }

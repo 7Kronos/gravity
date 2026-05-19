@@ -22,21 +22,17 @@ public sealed class MsBuildSmokeTests
     [Trait("Category", "Slow")]
     public void Smoke_DotnetBuild_GeneratesCSharpAndCompiles()
     {
-        var repoRoot = SamplesLoader.FindRepoSubdirectory("Gravity.Dsl.MsBuild");
-        var msbuildProject = Path.Combine(repoRoot, "Gravity.Dsl.MsBuild.csproj");
+        var msbuildDir = SamplesLoader.FindRepoSubdirectory("Gravity.Dsl.MsBuild");
+        var repoRoot = new DirectoryInfo(msbuildDir).Parent!.FullName;
+        var msbuildProject = Path.Combine(msbuildDir, "Gravity.Dsl.MsBuild.csproj");
         File.Exists(msbuildProject).Should().BeTrue();
 
-        // Step 1. Pack Gravity.Dsl.MsBuild into a local-packages directory inside
-        // the temp fixture. Both the .nupkg and the consumer csproj live under a
-        // single self-contained tree so the test cleans up to a single rm -rf.
-        var tmp = System.Environment.GetEnvironmentVariable("TMPDIR")
-                  ?? System.Environment.GetEnvironmentVariable("TEMP")
-                  ?? "/tmp";
-        var fixtureRoot = Path.Combine(tmp,
-            "gravity-smoke-" + System.Guid.NewGuid().ToString("N"));
+        // Step 1. Allocate a counter-named, TMPDIR-rooted scratch directory via the
+        // shared ScratchDir helper (FR-3045) so the smoke test's temp path is stable
+        // across runs and does not race other concurrent invocations in the same workspace.
+        var fixtureRoot = ScratchDir.For("smoke", repoRoot);
         var localFeed = Path.Combine(fixtureRoot, "local-packages");
         var consumerDir = Path.Combine(fixtureRoot, "consumer");
-        var consumerObj = Path.Combine(consumerDir, "obj");
         Directory.CreateDirectory(localFeed);
         Directory.CreateDirectory(consumerDir);
         Directory.CreateDirectory(Path.Combine(consumerDir, "registry"));
@@ -47,33 +43,16 @@ public sealed class MsBuildSmokeTests
             ProcessRunner.RunDotnet(
                 "pack \"" + msbuildProject + "\" --output \"" + localFeed
                     + "\" -c Debug -p:Version=0.1.0-smoke --nologo",
-                workingDir: repoRoot);
+                workingDir: msbuildDir);
 
-            // Step 2. Write the consumer csproj. Library output type so we do not need
-            // an entry point; net9.0 matches the repo's pinned TFM.
-            File.WriteAllText(Path.Combine(consumerDir, "Consumer.csproj"),
-                "<Project Sdk=\"Microsoft.NET.Sdk\">\n"
-                + "  <PropertyGroup>\n"
-                + "    <TargetFramework>net9.0</TargetFramework>\n"
-                + "    <OutputType>Library</OutputType>\n"
-                + "    <RestorePackagesPath>" + Path.Combine(fixtureRoot, ".nuget-cache").Replace("\\", "\\\\") + "</RestorePackagesPath>\n"
-                + "    <Nullable>enable</Nullable>\n"
-                + "  </PropertyGroup>\n"
-                + "  <ItemGroup>\n"
-                + "    <PackageReference Include=\"Gravity.Dsl.MsBuild\" Version=\"0.1.0-smoke\" />\n"
-                + "  </ItemGroup>\n"
-                + "</Project>\n");
-
-            // nuget.config: clear global feeds; point at the local-packages directory only.
-            File.WriteAllText(Path.Combine(consumerDir, "nuget.config"),
-                "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
-                + "<configuration>\n"
-                + "  <packageSources>\n"
-                + "    <clear />\n"
-                + "    <add key=\"gravity-smoke-local\" value=\"" + localFeed + "\" />\n"
-                + "    <add key=\"nuget.org\" value=\"https://api.nuget.org/v3/index.json\" />\n"
-                + "  </packageSources>\n"
-                + "</configuration>\n");
+            // Step 2. Write the consumer csproj via the shared template helper so the
+            // smoke and harness lanes share one source of truth.
+            ConsumerCsproj.Write(
+                consumerDir,
+                itemFragment: string.Empty,
+                nugetCacheDir: Path.Combine(fixtureRoot, ".nuget-cache"),
+                packageVersion: "0.1.0-smoke",
+                localFeed: localFeed);
 
             // Minimal Gravity source — one entity with property + lifecycle (mirrors
             // the Phase 9 spike fixture at /tmp/phase9-spike/registry/Employee.gravity

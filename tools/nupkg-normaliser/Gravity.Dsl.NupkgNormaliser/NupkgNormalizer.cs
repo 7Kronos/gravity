@@ -45,6 +45,8 @@ public static class NupkgNormalizer
             inputPath, FileMode.Open, FileAccess.Read, FileShare.Read))
         using (var inputZip = new ZipArchive(inputStream, ZipArchiveMode.Read, leaveOpen: false))
         {
+            long totalDecompressed = 0;
+
             // Phase 1 — locate .psmdcp, compute content hash, decide new name.
             var psmdcpEntry = inputZip.Entries.FirstOrDefault(e =>
                 e.FullName.StartsWith(
@@ -56,22 +58,13 @@ public static class NupkgNormalizer
                 throw new InvalidOperationException(
                     "Input .nupkg has no .psmdcp entry under package/services/metadata/core-properties/.");
 
-            byte[] psmdcpBytes;
-            using (var s = psmdcpEntry.Open())
-            using (var ms = new MemoryStream())
-            {
-                s.CopyTo(ms);
-                psmdcpBytes = ms.ToArray();
-            }
-
+            var psmdcpBytes = ReadEntryBounded(psmdcpEntry, ref totalDecompressed);
             var newPsmdcpPath = PsmdcpRenamer.NewPath(psmdcpBytes);
 
             // Phase 2 — rewrite _rels/.rels (only the .psmdcp-targeting <Relationship>).
             var relsEntry = inputZip.Entries.Single(e => e.FullName == "_rels/.rels");
-            string relsXml;
-            using (var s = relsEntry.Open())
-            using (var r = new StreamReader(s, Encoding.UTF8))
-                relsXml = r.ReadToEnd();
+            var relsBytes = ReadEntryBounded(relsEntry, ref totalDecompressed);
+            var relsXml = Encoding.UTF8.GetString(relsBytes);
 
             var newRelsXml = RelsRewriter.RewritePsmdcpTarget(
                 relsXml, newTarget: "/" + newPsmdcpPath);
@@ -90,10 +83,7 @@ public static class NupkgNormalizer
                     normalised["_rels/.rels"] = Encoding.UTF8.GetBytes(newRelsXml);
                     continue;
                 }
-                using var s = e.Open();
-                using var ms = new MemoryStream();
-                s.CopyTo(ms);
-                normalised[e.FullName] = ms.ToArray();
+                normalised[e.FullName] = ReadEntryBounded(e, ref totalDecompressed);
             }
 
             // Phase 4 — emit: sorted order + zero timestamps + no extra-fields (FR-3020 a/b/c).
@@ -113,5 +103,40 @@ public static class NupkgNormalizer
 
         // FR-3021: atomic move; overwrites if output already exists (handles input == output case).
         File.Move(tempOutput, outputPath, overwrite: true);
+    }
+
+    /// <summary>
+    /// Decompresses <paramref name="entry"/> into a byte array while enforcing the
+    /// per-entry cap (<see cref="DecompressionLimits.MaxPerEntryBytes"/>) and updating
+    /// <paramref name="totalDecompressed"/> against the cumulative cap
+    /// (<see cref="DecompressionLimits.MaxTotalBytes"/>). Throws
+    /// <see cref="InvalidDataException"/> on either overflow — the message names the
+    /// offending entry plus observed-vs-cap bytes so a future user can size up.
+    /// Defence in depth against malformed/hostile input; the harness's own packs
+    /// are ~30 KiB so the caps are never approached in normal use.
+    /// </summary>
+    private static byte[] ReadEntryBounded(ZipArchiveEntry entry, ref long totalDecompressed)
+    {
+        using var s = entry.Open();
+        using var ms = new MemoryStream();
+        var buffer = new byte[81920];
+        long entryDecompressed = 0;
+        int read;
+        while ((read = s.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            entryDecompressed += read;
+            if (entryDecompressed > DecompressionLimits.MaxPerEntryBytes)
+                throw new InvalidDataException(
+                    "Entry " + entry.FullName + " exceeds per-entry decompression cap ("
+                    + entryDecompressed + " > " + DecompressionLimits.MaxPerEntryBytes + " bytes).");
+            totalDecompressed += read;
+            if (totalDecompressed > DecompressionLimits.MaxTotalBytes)
+                throw new InvalidDataException(
+                    "Total decompressed bytes exceeds cap while reading entry "
+                    + entry.FullName + " (" + totalDecompressed + " > "
+                    + DecompressionLimits.MaxTotalBytes + " bytes).");
+            ms.Write(buffer, 0, read);
+        }
+        return ms.ToArray();
     }
 }

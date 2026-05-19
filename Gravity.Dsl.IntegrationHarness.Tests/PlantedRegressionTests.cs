@@ -59,10 +59,8 @@ public sealed class PlantedRegressionTests
                 because: "real Gravity.Dsl.MsBuild must pack successfully.\nstdout:\n"
                     + packStdout + "\nstderr:\n" + packStderr);
 
-            var nupkgFiles = Directory.GetFiles(stagingFeed, "Gravity.Dsl.MsBuild.*.nupkg");
-            nupkgFiles.Should().NotBeEmpty(because: "pack must produce a .nupkg file");
-            var realNupkg = nupkgFiles[0];
-            var packageVersion = ExtractVersion(realNupkg);
+            var realNupkg = NupkgLookup.FindMsBuildNupkg(stagingFeed);
+            var packageVersion = NupkgLookup.ExtractVersion(realNupkg);
 
             // Step 2: create the broken nupkg by copying the real one and replacing
             // buildTransitive/Gravity.Dsl.MsBuild.targets with the fixture's broken version.
@@ -173,15 +171,6 @@ public sealed class PlantedRegressionTests
                 srcEntryStream.CopyTo(dstEntryStream);
             }
         }
-    }
-
-    private static string ExtractVersion(string nupkgPath)
-    {
-        var filename = Path.GetFileNameWithoutExtension(nupkgPath);
-        var prefix = "Gravity.Dsl.MsBuild.";
-        return filename.StartsWith(prefix, StringComparison.Ordinal)
-            ? filename.Substring(prefix.Length)
-            : "1.0.0";
     }
 
     private static string GetTempRoot()

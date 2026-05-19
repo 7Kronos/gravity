@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Xml;
 using System.Xml.Linq;
 
 namespace Gravity.Dsl.NupkgNormaliser;
@@ -16,12 +17,23 @@ namespace Gravity.Dsl.NupkgNormaliser;
 /// (<c>/tmp/phase9c-spike/</c>) confirmed that its <c>Id</c> and <c>Target</c>
 /// are byte-stable across packs, so rewriting them would introduce divergence
 /// that the SDK does not produce (LD-22 / FR-3020 step e / spec §6 risk register).
+///
+/// XML parsing uses <see cref="XmlReaderSettings"/> with
+/// <see cref="DtdProcessing.Prohibit"/> and a null <see cref="XmlResolver"/>
+/// as defence in depth — .NET 6+ already prohibits DTDs implicitly, but the
+/// explicit settings document the intent and survive future framework changes.
 /// </summary>
 internal static class RelsRewriter
 {
     // Type URI that identifies the core-properties (.psmdcp) relationship.
     private const string CorePropertiesType =
         "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties";
+
+    private static readonly XmlReaderSettings SecureReaderSettings = new()
+    {
+        DtdProcessing = DtdProcessing.Prohibit,
+        XmlResolver = null,
+    };
 
     /// <summary>
     /// Parses <paramref name="xml"/> as the <c>_rels/.rels</c> document, updates
@@ -32,7 +44,12 @@ internal static class RelsRewriter
     /// </summary>
     public static string RewritePsmdcpTarget(string xml, string newTarget)
     {
-        var doc = XDocument.Parse(xml, LoadOptions.PreserveWhitespace);
+        XDocument doc;
+        using (var sr = new StringReader(xml))
+        using (var reader = XmlReader.Create(sr, SecureReaderSettings))
+        {
+            doc = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+        }
 
         var rel = doc.Descendants()
             .Where(e => e.Name.LocalName == "Relationship")

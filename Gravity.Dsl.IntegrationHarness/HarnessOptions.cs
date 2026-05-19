@@ -29,7 +29,13 @@ public sealed class HarnessOptions
     /// <summary>Output directory for log files and junit.xml; defaults to <c>&lt;repo&gt;/artifacts/integration-harness/</c>.</summary>
     public string OutDir { get; private set; } = string.Empty;
 
-    /// <summary>Optional filter pattern (only meaningful when Subcommand is <c>run-all</c>).</summary>
+    /// <summary>
+    /// Optional filter pattern (only meaningful when <see cref="Subcommand"/> is <c>run-all</c>).
+    /// Matched as an ordinal, case-sensitive <b>substring</b> against each subcommand name —
+    /// so <c>--filter 9.1</c> selects <c>run-ac-9.11</c>, <c>run-ac-9.12</c>, <c>run-ac-9.13</c>,
+    /// <c>run-ac-9.14</c>, and <c>run-ac-9.15</c>. Pass the full token (e.g. <c>run-ac-9.11</c>)
+    /// for an exact match.
+    /// </summary>
     public string? Filter { get; private set; }
 
     private HarnessOptions() { }
@@ -120,7 +126,8 @@ public sealed class HarnessOptions
     private static void WriteUsage(string error)
     {
         Console.Error.Write("[harness] ERROR: " + error + "\n");
-        Console.Error.Write("Usage: dotnet run --project Gravity.Dsl.IntegrationHarness -- <subcommand> [--config Debug|Release] [--out <dir>] [--filter <pattern>]\n");
+        Console.Error.Write("Usage: dotnet run --project Gravity.Dsl.IntegrationHarness -- <subcommand> [--config Debug|Release] [--out <dir>] [--filter <substring>]\n");
+        Console.Error.Write("  --filter is an ordinal substring match against subcommand names; e.g. '9.1' selects 9.11..9.15.\n");
         Console.Error.Write("Legal subcommands: run-ac-9.7-pack, run-ac-9.11, run-ac-9.12, run-ac-9.13, run-ac-9.14, run-ac-9.15, run-all\n");
     }
 }
