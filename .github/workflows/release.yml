@@ -76,8 +76,10 @@ jobs:
       - name: AC-9c.1 grep guard
         run: bash scripts/check-no-skipped-msbuild-facts.sh
 
+      # Skip Category=Slow per the same rationale as ci.yml — the harness
+      # `run-all` step is the authoritative invocation for AC-9.* on CI.
       - name: Test — fast lane (solution)
-        run: dotnet test Gravity.Dsl.sln --configuration Release --no-build --verbosity normal
+        run: dotnet test Gravity.Dsl.sln --configuration Release --no-build --verbosity normal --filter "Category!=Slow"
 
       - name: Test — integration harness unit tests
         run: dotnet test Gravity.Dsl.IntegrationHarness.Tests/Gravity.Dsl.IntegrationHarness.Tests.csproj --configuration Release --no-build --verbosity normal
