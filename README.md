@@ -1,5 +1,6 @@
 # Gravity DSL
 
+[![CI](https://github.com/7Kronos/gravity/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/7Kronos/gravity/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 Gravity DSL is a textual definition language for AI-constrained enterprise software

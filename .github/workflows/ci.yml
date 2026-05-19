@@ -69,8 +69,14 @@ jobs:
       - name: AC-9c.1 grep guard
         run: bash scripts/check-no-skipped-msbuild-facts.sh
 
+      # Exclude Category=Slow tests: those are the FR-3004 wrappers that
+      # shell out to `dotnet run --project Gravity.Dsl.IntegrationHarness`,
+      # which the dedicated `Integration harness (run-all)` step below runs
+      # once authoritatively. Running both is ~110s of duplicated work.
+      # The wrappers remain available locally for per-AC discovery
+      # (e.g. `dotnet test --filter "FullyQualifiedName~AC_9_11"`).
       - name: Test — fast lane (solution)
-        run: dotnet test Gravity.Dsl.sln --configuration Release --no-build --verbosity normal
+        run: dotnet test Gravity.Dsl.sln --configuration Release --no-build --verbosity normal --filter "Category!=Slow"
 
       - name: Test — integration harness unit tests
         run: dotnet test Gravity.Dsl.IntegrationHarness.Tests/Gravity.Dsl.IntegrationHarness.Tests.csproj --configuration Release --no-build --verbosity normal
