@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Xml;
 using System.Xml.Linq;
 using FluentAssertions;
 using Gravity.Dsl.NupkgNormaliser;
@@ -70,6 +71,59 @@ public sealed class BoundaryTests
     /// from the input's random GUID value to a value ending in <c>.psmdcp</c>.
     /// Pins that the rewriter is not a no-op (defence-in-depth per plan.md §4.1).
     /// </summary>
+    /// <summary>
+    /// A .nupkg whose .psmdcp entry decompresses to more than the per-entry cap
+    /// throws InvalidDataException rather than silently allocating unbounded
+    /// memory. Defence-in-depth against malformed input (FR-3023 risk register).
+    /// </summary>
+    [Fact]
+    public void OversizedEntry_Throws()
+    {
+        var tmp = Path.Combine(GetTempRoot(), "norm-boundary-bomb");
+        if (Directory.Exists(tmp)) Directory.Delete(tmp, recursive: true);
+        Directory.CreateDirectory(tmp);
+        try
+        {
+            // Build a synthetic .nupkg whose .psmdcp entry exceeds the 16 MiB cap.
+            // We use highly-compressible content (a long run of the same byte) so the
+            // on-disk fixture stays tiny while the decompressed payload trips the cap.
+            const long oversized = (16L * 1024 * 1024) + 1024;
+            var bombPath = Path.Combine(tmp, "bomb.nupkg");
+            using (var fs = new FileStream(bombPath, FileMode.Create, FileAccess.Write))
+            using (var zip = new ZipArchive(fs, ZipArchiveMode.Create))
+            {
+                var psmdcp = zip.CreateEntry(
+                    "package/services/metadata/core-properties/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.psmdcp",
+                    CompressionLevel.Optimal);
+                using (var es = psmdcp.Open())
+                {
+                    var chunk = new byte[64 * 1024];
+                    long written = 0;
+                    while (written < oversized)
+                    {
+                        var n = (int)Math.Min(chunk.Length, oversized - written);
+                        es.Write(chunk, 0, n);
+                        written += n;
+                    }
+                }
+                var rels = zip.CreateEntry("_rels/.rels", CompressionLevel.Optimal);
+                using (var es = rels.Open())
+                using (var sw = new StreamWriter(es, Encoding.UTF8))
+                    sw.Write("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+                        + "<Relationship Type=\"http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties\" "
+                        + "Target=\"/package/services/metadata/core-properties/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.psmdcp\" "
+                        + "Id=\"Rorig\" />"
+                        + "</Relationships>");
+            }
+
+            var act = () => NupkgNormalizer.Normalize(bombPath, Path.Combine(tmp, "norm.nupkg"));
+            act.Should().Throw<InvalidDataException>(
+                because: "the normaliser must enforce a per-entry decompression cap as defence-in-depth")
+                .WithMessage("*per-entry decompression cap*");
+        }
+        finally { Directory.Delete(tmp, recursive: true); }
+    }
+
     [Fact]
     public void PsmdcpPointerRelationship_TargetRewritten()
     {
@@ -96,10 +150,25 @@ public sealed class BoundaryTests
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
+    private static readonly XmlReaderSettings SecureReaderSettings = new()
+    {
+        DtdProcessing = DtdProcessing.Prohibit,
+        XmlResolver = null,
+    };
+
+    private static XDocument ParseSecure(string xml)
+    {
+        using var sr = new StringReader(xml);
+        using var reader = XmlReader.Create(sr, SecureReaderSettings);
+        // LoadOptions.PreserveWhitespace mirrors RelsRewriter so byte-comparison
+        // assertions against the rewriter's output stay consistent.
+        return XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+    }
+
     private static XElement? ReadManifestRelationship(string nupkgPath)
     {
         var relsXml = ReadRelsEntry(nupkgPath);
-        var doc = XDocument.Parse(relsXml);
+        var doc = ParseSecure(relsXml);
         return doc.Descendants()
             .Where(e => e.Name.LocalName == "Relationship")
             .FirstOrDefault(e => string.Equals(
@@ -109,7 +178,7 @@ public sealed class BoundaryTests
     private static string? ReadCorePropertiesTarget(string nupkgPath)
     {
         var relsXml = ReadRelsEntry(nupkgPath);
-        var doc = XDocument.Parse(relsXml);
+        var doc = ParseSecure(relsXml);
         var rel = doc.Descendants()
             .Where(e => e.Name.LocalName == "Relationship")
             .FirstOrDefault(e => string.Equals(

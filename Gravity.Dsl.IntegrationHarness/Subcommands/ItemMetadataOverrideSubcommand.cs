@@ -18,9 +18,9 @@ public sealed class ItemMetadataOverrideSubcommand : ISubcommand
     public string AcId => "9.11";
 
     /// <inheritdoc/>
-    public SubcommandResult Run(string scratchDir, string workspaceRoot, HarnessLog log)
+    public SubcommandResult Run(string scratchDir, string workspaceRoot, HarnessLog log, string config)
     {
-        log.WriteToFile("[ItemMetadataOverride] starting; scratchDir=" + scratchDir);
+        log.WriteToFile("[ItemMetadataOverride] starting; scratchDir=" + scratchDir + " config=" + config);
 
         // Pack the MsBuild package into a local feed.
         var localFeed = Path.Combine(scratchDir, "local-packages");
@@ -28,21 +28,25 @@ public sealed class ItemMetadataOverrideSubcommand : ISubcommand
         var msbuildCsproj = Path.Combine(
             workspaceRoot, "Gravity.Dsl.MsBuild", "Gravity.Dsl.MsBuild.csproj");
 
-        log.WriteToFile("[ItemMetadataOverride] packing Gravity.Dsl.MsBuild");
+        log.WriteToFile("[ItemMetadataOverride] packing Gravity.Dsl.MsBuild -c " + config);
         var (packExit, packStdout, packStderr) = ProcessRunner.RunDotnetCapture(
-            "pack \"" + msbuildCsproj + "\" -c Release -o \"" + localFeed + "\" --nologo",
+            "pack \"" + msbuildCsproj + "\" -c " + config + " -o \"" + localFeed + "\" --nologo",
             workspaceRoot);
         log.WriteToFile("pack exit=" + packExit + "\n" + packStdout + "\n" + packStderr);
         if (packExit != 0)
             return SubcommandResult.Fail(HarnessRuleIds.Harn001,
                 "dotnet pack failed with exit " + packExit, localFeed, packExit);
 
-        // Determine package version from the packed filename.
-        var nupkgFiles = Directory.GetFiles(localFeed, "Gravity.Dsl.MsBuild.*.nupkg");
-        if (nupkgFiles.Length == 0)
-            return SubcommandResult.Fail(HarnessRuleIds.Harn001,
-                "No Gravity.Dsl.MsBuild .nupkg found in " + localFeed);
-        var packageVersion = ExtractVersion(nupkgFiles[0]);
+        // Determine package version from the packed filename via shared helper.
+        string packageVersion;
+        try
+        {
+            packageVersion = NupkgLookup.ExtractVersion(NupkgLookup.FindMsBuildNupkg(localFeed));
+        }
+        catch (System.InvalidOperationException ex)
+        {
+            return SubcommandResult.Fail(HarnessRuleIds.Harn001, ex.Message);
+        }
 
         // Set up consumer project.
         var consumerDir = Path.Combine(scratchDir, "consumer");
@@ -113,15 +117,5 @@ public sealed class ItemMetadataOverrideSubcommand : ISubcommand
 
         log.WriteToFile("[ItemMetadataOverride] PASS");
         return SubcommandResult.Pass();
-    }
-
-    private static string ExtractVersion(string nupkgPath)
-    {
-        var filename = System.IO.Path.GetFileNameWithoutExtension(nupkgPath);
-        // filename is e.g. "Gravity.Dsl.MsBuild.0.1.0"
-        var prefix = "Gravity.Dsl.MsBuild.";
-        return filename.StartsWith(prefix, System.StringComparison.Ordinal)
-            ? filename.Substring(prefix.Length)
-            : "0.1.0";
     }
 }

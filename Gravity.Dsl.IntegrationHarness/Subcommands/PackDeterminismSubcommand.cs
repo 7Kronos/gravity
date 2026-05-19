@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using Gravity.Dsl.IntegrationHarness.Shared;
 using Gravity.Dsl.NupkgNormaliser;
@@ -21,9 +22,9 @@ public sealed class PackDeterminismSubcommand : ISubcommand
     public string AcId => "9.7-pack";
 
     /// <inheritdoc/>
-    public SubcommandResult Run(string scratchDir, string workspaceRoot, HarnessLog log)
+    public SubcommandResult Run(string scratchDir, string workspaceRoot, HarnessLog log, string config)
     {
-        log.WriteToFile("[PackDeterminism] starting; scratchDir=" + scratchDir);
+        log.WriteToFile("[PackDeterminism] starting; scratchDir=" + scratchDir + " config=" + config);
 
         var msbuildCsproj = Path.Combine(
             workspaceRoot, "Gravity.Dsl.MsBuild", "Gravity.Dsl.MsBuild.csproj");
@@ -38,9 +39,9 @@ public sealed class PackDeterminismSubcommand : ISubcommand
         Directory.CreateDirectory(msBuildPack1);
         Directory.CreateDirectory(msBuildPack2);
 
-        log.WriteToFile("[PackDeterminism] packing MsBuild (pass 1)");
+        log.WriteToFile("[PackDeterminism] packing MsBuild (pass 1) -c " + config);
         var (exit1, stdout1, stderr1) = ProcessRunner.RunDotnetCapture(
-            "pack \"" + msbuildCsproj + "\" -c Release -o \"" + msBuildPack1 + "\" --nologo",
+            "pack \"" + msbuildCsproj + "\" -c " + config + " -o \"" + msBuildPack1 + "\" --nologo",
             workspaceRoot);
         log.WriteToFile("exit=" + exit1 + "\n" + stdout1 + "\n" + stderr1);
         if (exit1 != 0)
@@ -48,9 +49,9 @@ public sealed class PackDeterminismSubcommand : ISubcommand
                 "dotnet pack MsBuild (pass 1) failed with exit " + exit1,
                 msBuildPack1, exit1);
 
-        log.WriteToFile("[PackDeterminism] packing MsBuild (pass 2)");
+        log.WriteToFile("[PackDeterminism] packing MsBuild (pass 2) -c " + config);
         var (exit2, stdout2, stderr2) = ProcessRunner.RunDotnetCapture(
-            "pack \"" + msbuildCsproj + "\" -c Release -o \"" + msBuildPack2 + "\" --nologo",
+            "pack \"" + msbuildCsproj + "\" -c " + config + " -o \"" + msBuildPack2 + "\" --nologo",
             workspaceRoot);
         log.WriteToFile("exit=" + exit2 + "\n" + stdout2 + "\n" + stderr2);
         if (exit2 != 0)
@@ -64,9 +65,9 @@ public sealed class PackDeterminismSubcommand : ISubcommand
         Directory.CreateDirectory(outlinePack1);
         Directory.CreateDirectory(outlinePack2);
 
-        log.WriteToFile("[PackDeterminism] packing Outline (pass 1)");
+        log.WriteToFile("[PackDeterminism] packing Outline (pass 1) -c " + config);
         var (exit3, stdout3, stderr3) = ProcessRunner.RunDotnetCapture(
-            "pack \"" + outlineCsproj + "\" -c Release -o \"" + outlinePack1 + "\" --nologo",
+            "pack \"" + outlineCsproj + "\" -c " + config + " -o \"" + outlinePack1 + "\" --nologo",
             workspaceRoot);
         log.WriteToFile("exit=" + exit3 + "\n" + stdout3 + "\n" + stderr3);
         if (exit3 != 0)
@@ -74,9 +75,9 @@ public sealed class PackDeterminismSubcommand : ISubcommand
                 "dotnet pack Outline (pass 1) failed with exit " + exit3,
                 outlinePack1, exit3);
 
-        log.WriteToFile("[PackDeterminism] packing Outline (pass 2)");
+        log.WriteToFile("[PackDeterminism] packing Outline (pass 2) -c " + config);
         var (exit4, stdout4, stderr4) = ProcessRunner.RunDotnetCapture(
-            "pack \"" + outlineCsproj + "\" -c Release -o \"" + outlinePack2 + "\" --nologo",
+            "pack \"" + outlineCsproj + "\" -c " + config + " -o \"" + outlinePack2 + "\" --nologo",
             workspaceRoot);
         log.WriteToFile("exit=" + exit4 + "\n" + stdout4 + "\n" + stderr4);
         if (exit4 != 0)
@@ -140,7 +141,9 @@ public sealed class PackDeterminismSubcommand : ISubcommand
 
     private static string? FindNupkg(string dir)
     {
-        var files = Directory.GetFiles(dir, "*.nupkg", SearchOption.TopDirectoryOnly);
+        var files = Directory.GetFiles(dir, "*.nupkg", SearchOption.TopDirectoryOnly)
+            .OrderBy(p => p, StringComparer.Ordinal)
+            .ToArray();
         return files.Length > 0 ? files[0] : null;
     }
 

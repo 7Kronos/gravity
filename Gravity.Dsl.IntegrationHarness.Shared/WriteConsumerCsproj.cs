@@ -1,4 +1,4 @@
-using System.IO;
+using System.Security;
 
 namespace Gravity.Dsl.IntegrationHarness.Shared;
 
@@ -42,17 +42,26 @@ public static class ConsumerCsproj
         string localFeed,
         string targetFramework = "net9.0")
     {
+        // XML-escape values embedded as element/attribute text. Inputs are harness-
+        // internal today (TargetFramework constant, ScratchDir-rooted paths, version
+        // extracted from a packed filename), so the escape is defence in depth, not
+        // a known-exploit closure. The RestorePackagesPath also takes a
+        // backslash-doubling pass for Windows path safety inside the XML element.
+        var escapedTfm = SecurityElement.Escape(targetFramework) ?? string.Empty;
+        var escapedCache = SecurityElement.Escape(nugetCacheDir.Replace("\\", "\\\\")) ?? string.Empty;
+        var escapedVersion = SecurityElement.Escape(packageVersion) ?? string.Empty;
+
         var csprojPath = Path.Combine(consumerDir, "Consumer.csproj");
         File.WriteAllText(csprojPath,
             "<Project Sdk=\"Microsoft.NET.Sdk\">\n"
             + "  <PropertyGroup>\n"
-            + "    <TargetFramework>" + targetFramework + "</TargetFramework>\n"
+            + "    <TargetFramework>" + escapedTfm + "</TargetFramework>\n"
             + "    <OutputType>Library</OutputType>\n"
-            + "    <RestorePackagesPath>" + nugetCacheDir.Replace("\\", "\\\\") + "</RestorePackagesPath>\n"
+            + "    <RestorePackagesPath>" + escapedCache + "</RestorePackagesPath>\n"
             + "    <Nullable>enable</Nullable>\n"
             + "  </PropertyGroup>\n"
             + "  <ItemGroup>\n"
-            + "    <PackageReference Include=\"Gravity.Dsl.MsBuild\" Version=\"" + packageVersion + "\" />\n"
+            + "    <PackageReference Include=\"Gravity.Dsl.MsBuild\" Version=\"" + escapedVersion + "\" />\n"
             + "  </ItemGroup>\n"
             + itemFragment
             + "</Project>\n");

@@ -26,6 +26,12 @@ public interface ISubcommand
     /// <c>AppContext.BaseDirectory</c> looking for <c>Gravity.Dsl.sln</c>).
     /// </param>
     /// <param name="log">Per-step log writer; use to record diagnostic detail.</param>
+    /// <param name="config">
+    /// Build configuration (<c>Debug</c> or <c>Release</c>) flowed from
+    /// <c>HarnessOptions.Config</c>. Pack-determinism-sensitive invocations
+    /// honour this value; the per-AC consumer build stays <c>Debug</c> because
+    /// the AC assertions reference <c>bin/Debug/net9.0/</c> paths explicitly.
+    /// </param>
     /// <returns>A <see cref="SubcommandResult"/> describing pass or fail.</returns>
-    SubcommandResult Run(string scratchDir, string workspaceRoot, HarnessLog log);
+    SubcommandResult Run(string scratchDir, string workspaceRoot, HarnessLog log, string config);
 }
