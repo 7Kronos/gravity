@@ -1,0 +1,35 @@
+<Project>
+
+  <!--
+    PLANTED REGRESSION FIXTURE (AC-9c.5): this is a deliberately broken version of
+    Gravity.Dsl.MsBuild.targets. The GravityDslOutputDir property override is ignored
+    here — OutputDir is hardcoded to the default IntermediateOutputPath so that the
+    consumer's <GravityDslOutputDir>custom-out</GravityDslOutputDir> property override
+    has no effect. This means AC-9.11's assertion that custom-out/ gets populated will
+    fail, triggering HARN001.
+  -->
+
+  <UsingTask TaskName="Gravity.Dsl.MsBuild.GravityDslGenTask"
+             AssemblyFile="$(MSBuildThisFileDirectory)..\tasks\net9.0\Gravity.Dsl.MsBuild.dll" />
+
+  <Target Name="GravityDslGenerate"
+          BeforeTargets="CoreCompile"
+          Condition=" '@(GravityDsl)' != '' "
+          Inputs="@(GravityDsl)"
+          Outputs="$(IntermediateOutputPath)Generated\.gravity-stamp">
+    <!-- PLANTED REGRESSION: OutputDir ignores $(GravityDslOutputDir); always routes to IntermediateOutputPath. -->
+    <GravityDslGenTask Sources="@(GravityDsl)"
+                       OutputDir="$(IntermediateOutputPath)Generated"
+                       ConfigFile="$(GravityDslConfig)"
+                       AsOf="$(GravityDslAsOf)"
+                       ProjectDirectory="$(MSBuildProjectDirectory)"
+                       EmitterAssemblies="@(GravityDslEmitterAssembly)" />
+    <Touch Files="$(IntermediateOutputPath)Generated\.gravity-stamp" AlwaysCreate="true" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)Generated\csharp\**\*.cs" Exclude="@(Compile)" />
+      <FileWrites Include="$(IntermediateOutputPath)Generated\**\*" />
+      <FileWrites Include="$(IntermediateOutputPath)Generated\.gravity-stamp" />
+    </ItemGroup>
+  </Target>
+
+</Project>

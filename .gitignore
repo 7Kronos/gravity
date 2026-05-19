@@ -20,6 +20,9 @@ Thumbs.db
 # NuGet
 *.nupkg
 .nuget/
+# Exception: synthetic test fixtures for the Phase 9c post-pack normaliser
+# must be tracked despite the *.nupkg rule (FR-3023 / AC-9c.7 / AC-9c.11).
+!tests/fixtures/nupkg-normaliser/*.nupkg
 
 # Local environment
 *.env
@@ -27,3 +30,7 @@ Thumbs.db
 
 # Agent runtime state
 .omc/
+.claude/
+
+# Phase 9c harness runtime artefacts (scratch + per-step logs + junit.xml)
+artifacts/

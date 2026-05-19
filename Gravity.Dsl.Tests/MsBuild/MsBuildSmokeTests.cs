@@ -1,7 +1,7 @@
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using FluentAssertions;
+using Gravity.Dsl.IntegrationHarness.Shared;
 using Gravity.Dsl.Tests.Helpers;
 using Xunit;
 
@@ -29,7 +29,10 @@ public sealed class MsBuildSmokeTests
         // Step 1. Pack Gravity.Dsl.MsBuild into a local-packages directory inside
         // the temp fixture. Both the .nupkg and the consumer csproj live under a
         // single self-contained tree so the test cleans up to a single rm -rf.
-        var fixtureRoot = Path.Combine(Path.GetTempPath(),
+        var tmp = System.Environment.GetEnvironmentVariable("TMPDIR")
+                  ?? System.Environment.GetEnvironmentVariable("TEMP")
+                  ?? "/tmp";
+        var fixtureRoot = Path.Combine(tmp,
             "gravity-smoke-" + System.Guid.NewGuid().ToString("N"));
         var localFeed = Path.Combine(fixtureRoot, "local-packages");
         var consumerDir = Path.Combine(fixtureRoot, "consumer");
@@ -41,7 +44,7 @@ public sealed class MsBuildSmokeTests
         try
         {
             // Pack with an explicit version so the consumer's PackageReference resolves.
-            RunDotnet(
+            ProcessRunner.RunDotnet(
                 "pack \"" + msbuildProject + "\" --output \"" + localFeed
                     + "\" -c Debug -p:Version=0.1.0-smoke --nologo",
                 workingDir: repoRoot);
@@ -76,46 +79,12 @@ public sealed class MsBuildSmokeTests
             // the Phase 9 spike fixture at /tmp/phase9-spike/registry/Employee.gravity
             // verbatim so any divergence between this test and the spike is visible).
             File.WriteAllText(Path.Combine(consumerDir, "registry", "Employee.gravity"),
-                "namespace hr;\n"
-                + "\n"
-                + "entity Employee version 1 {\n"
-                + "\n"
-                + "  identity id: UUID;\n"
-                + "\n"
-                + "  properties {\n"
-                + "    name: String;\n"
-                + "    email: String?;\n"
-                + "  }\n"
-                + "\n"
-                + "  lifecycle {\n"
-                + "    states {\n"
-                + "      Active, Terminated;\n"
-                + "    }\n"
-                + "    transitions {\n"
-                + "      Active -> Terminated on Terminated;\n"
-                + "    }\n"
-                + "  }\n"
-                + "\n"
-                + "  events {\n"
-                + "    Terminated { terminated_at: DateTime; };\n"
-                + "  }\n"
-                + "\n"
-                + "  commands {\n"
-                + "    Terminate(reason: String)\n"
-                + "      returns TerminationResult\n"
-                + "      with side_effect Terminated;\n"
-                + "  }\n"
-                + "}\n"
-                + "\n"
-                + "type TerminationResult {\n"
-                + "  success: Boolean;\n"
-                + "  message: String?;\n"
-                + "}\n");
+                Fixtures.MinimalEmployeeGravity);
 
             // Step 3. dotnet build the consumer. The GravityDslGenerate target runs
             // before CoreCompile, writes generated .cs under obj/Generated/csharp/,
             // and the Compile item include lifts them into the C# compilation.
-            var (exitCode, stdout, stderr) = RunDotnetCapture(
+            var (exitCode, stdout, stderr) = ProcessRunner.RunDotnetCapture(
                 "build \"" + Path.Combine(consumerDir, "Consumer.csproj") + "\" -c Debug --nologo",
                 workingDir: consumerDir);
 
@@ -131,7 +100,7 @@ public sealed class MsBuildSmokeTests
             // under the deferred AC-9.11 (item-metadata override) coverage.
             var generatedCs = Directory
                 .GetFiles(consumerDir, "Employee.cs", SearchOption.AllDirectories)
-                .Where(p => p.Contains(Path.DirectorySeparatorChar + "csharp" + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+                .Where(p => p.Contains(Path.DirectorySeparatorChar + "csharp" + Path.DirectorySeparatorChar, System.StringComparison.Ordinal))
                 .ToList();
             generatedCs.Should().NotBeEmpty(
                 because: "the C# emitter must produce at least one Employee.cs under a csharp/ folder.\n"
@@ -149,40 +118,5 @@ public sealed class MsBuildSmokeTests
             try { if (Directory.Exists(fixtureRoot)) Directory.Delete(fixtureRoot, recursive: true); }
             catch { /* best effort */ }
         }
-    }
-
-    private static (int ExitCode, string Stdout, string Stderr) RunDotnetCapture(string args, string workingDir)
-    {
-        var psi = new ProcessStartInfo
-        {
-            FileName = "dotnet",
-            Arguments = args,
-            WorkingDirectory = workingDir,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-        };
-        using var p = Process.Start(psi)!;
-        // Read stdout / stderr concurrently to avoid the classic full-pipe-buffer
-        // deadlock when the child emits more than ~4 KB to either stream before
-        // we get to ReadToEnd on the other one.
-        var stdoutTask = p.StandardOutput.ReadToEndAsync();
-        var stderrTask = p.StandardError.ReadToEndAsync();
-        if (!p.WaitForExit(240_000))
-        {
-            try { p.Kill(entireProcessTree: true); } catch { /* best effort */ }
-            throw new System.InvalidOperationException("dotnet timed out: " + args);
-        }
-        var stdout = stdoutTask.GetAwaiter().GetResult();
-        var stderr = stderrTask.GetAwaiter().GetResult();
-        return (p.ExitCode, stdout, stderr);
-    }
-
-    private static void RunDotnet(string args, string workingDir)
-    {
-        var (exit, stdout, stderr) = RunDotnetCapture(args, workingDir);
-        exit.Should().Be(0,
-            because: "dotnet " + args + " must succeed.\nstdout:\n" + stdout + "\nstderr:\n" + stderr);
     }
 }

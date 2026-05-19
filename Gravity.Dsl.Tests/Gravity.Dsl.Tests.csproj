@@ -14,6 +14,7 @@
     <ProjectReference Include="..\Gravity.Dsl.Cli\Gravity.Dsl.Cli.csproj" />
     <ProjectReference Include="..\samples\emitters\outline\Gravity.Dsl.Emitter.Sample.Outline\Gravity.Dsl.Emitter.Sample.Outline.csproj" />
     <ProjectReference Include="..\Gravity.Dsl.MsBuild\Gravity.Dsl.MsBuild.csproj" />
+    <ProjectReference Include="..\Gravity.Dsl.IntegrationHarness.Shared\Gravity.Dsl.IntegrationHarness.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>

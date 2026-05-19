@@ -25,9 +25,18 @@
     would NOT inherit the exemption by accident.
     The compiler, AST, and emitter projects remain locked down so a stray
     clock read in any of them fails the build.
+
+    Phase 9c addition (LD-23 / AC-9c.9): Gravity.Dsl.IntegrationHarness.Shared is
+    also exempt. The shared helpers legitimately need ScratchDir / temp-dir access
+    for process isolation (FR-3045): ScratchDir.For() resolves the temp root via
+    Environment.GetEnvironmentVariable("TMPDIR") — the documented escape hatch, not
+    the banned Path.GetTempPath(). The harness console project (Gravity.Dsl.IntegrationHarness)
+    is deliberately NOT exempt: the harness driver compares hashes and prints AC verdicts
+    with no legitimate clock, GUID, or machine-name read. The exempt set is exactly four:
+    Cli, Tests, MsBuild, IntegrationHarness.Shared.
   -->
   <Choose>
-    <When Condition=" '$(MSBuildProjectName)' != 'Gravity.Dsl.Tests' AND '$(MSBuildProjectName)' != 'Gravity.Dsl.Cli' AND '$(MSBuildProjectName)' != 'Gravity.Dsl.MsBuild' ">
+    <When Condition=" '$(MSBuildProjectName)' != 'Gravity.Dsl.Tests' AND '$(MSBuildProjectName)' != 'Gravity.Dsl.Cli' AND '$(MSBuildProjectName)' != 'Gravity.Dsl.MsBuild' AND '$(MSBuildProjectName)' != 'Gravity.Dsl.IntegrationHarness.Shared' ">
       <ItemGroup>
         <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers">
           <PrivateAssets>all</PrivateAssets>
