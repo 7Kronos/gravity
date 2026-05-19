@@ -25,6 +25,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "outline", "outline", "{FB80
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gravity.Dsl.Emitter.Sample.Outline", "samples\emitters\outline\Gravity.Dsl.Emitter.Sample.Outline\Gravity.Dsl.Emitter.Sample.Outline.csproj", "{65D66072-744D-418F-8361-A13C28BBEED1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gravity.Dsl.Emitter.JsonSchema", "Gravity.Dsl.Emitter.JsonSchema\Gravity.Dsl.Emitter.JsonSchema.csproj", "{7B390F5A-E451-4FB2-AADA-745D382CD701}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -131,6 +133,18 @@ Global
 		{65D66072-744D-418F-8361-A13C28BBEED1}.Release|x64.Build.0 = Release|Any CPU
 		{65D66072-744D-418F-8361-A13C28BBEED1}.Release|x86.ActiveCfg = Release|Any CPU
 		{65D66072-744D-418F-8361-A13C28BBEED1}.Release|x86.Build.0 = Release|Any CPU
+		{7B390F5A-E451-4FB2-AADA-745D382CD701}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B390F5A-E451-4FB2-AADA-745D382CD701}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B390F5A-E451-4FB2-AADA-745D382CD701}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7B390F5A-E451-4FB2-AADA-745D382CD701}.Debug|x64.Build.0 = Debug|Any CPU
+		{7B390F5A-E451-4FB2-AADA-745D382CD701}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7B390F5A-E451-4FB2-AADA-745D382CD701}.Debug|x86.Build.0 = Debug|Any CPU
+		{7B390F5A-E451-4FB2-AADA-745D382CD701}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B390F5A-E451-4FB2-AADA-745D382CD701}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7B390F5A-E451-4FB2-AADA-745D382CD701}.Release|x64.ActiveCfg = Release|Any CPU
+		{7B390F5A-E451-4FB2-AADA-745D382CD701}.Release|x64.Build.0 = Release|Any CPU
+		{7B390F5A-E451-4FB2-AADA-745D382CD701}.Release|x86.ActiveCfg = Release|Any CPU
+		{7B390F5A-E451-4FB2-AADA-745D382CD701}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

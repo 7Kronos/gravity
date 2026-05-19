@@ -1,0 +1,199 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "hr.TimeEntry",
+  "x-gravity-version": 1,
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "hours": {
+      "type": "string",
+      "format": "decimal"
+    },
+    "billable": {
+      "type": "boolean"
+    },
+    "description": {
+      "type": "string"
+    },
+    "rejection_reason": {
+      "type": "string"
+    },
+    "employee_id": {
+      "type": "string",
+      "description": "references Employee by id",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "description": "references Project by id",
+      "format": "uuid"
+    },
+    "submitter_id": {
+      "type": "string",
+      "description": "references Employee by id (submitted_by)",
+      "format": "uuid"
+    },
+    "approver_id": {
+      "type": "string",
+      "description": "references Employee by id (approved_by)",
+      "format": "uuid"
+    },
+    "state": {
+      "$ref": "#/definitions/TimeEntryState"
+    }
+  },
+  "required": [
+    "billable",
+    "date",
+    "employee_id",
+    "hours",
+    "id",
+    "project_id",
+    "state",
+    "submitter_id"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "ApproveRequest": {
+      "title": "hr.TimeEntry.Approve.Request",
+      "type": "object",
+      "properties": {
+        "approver_id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "required": [
+        "approver_id"
+      ],
+      "additionalProperties": false
+    },
+    "ApproveResponse": {
+      "$ref": "ApprovalResult.json"
+    },
+    "Approved": {
+      "title": "hr.TimeEntry.Approved",
+      "type": "object",
+      "properties": {
+        "approver_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "approved_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "approved_at",
+        "approver_id"
+      ],
+      "additionalProperties": false
+    },
+    "RejectRequest": {
+      "title": "hr.TimeEntry.Reject.Request",
+      "type": "object",
+      "properties": {
+        "approver_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "approver_id",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "RejectResponse": {
+      "$ref": "RejectionResult.json"
+    },
+    "Rejected": {
+      "title": "hr.TimeEntry.Rejected",
+      "type": "object",
+      "properties": {
+        "approver_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "approver_id",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "Reopened": {
+      "title": "hr.TimeEntry.Reopened",
+      "type": "object",
+      "properties": {
+        "reopener_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason",
+        "reopener_id"
+      ],
+      "additionalProperties": false
+    },
+    "Resubmitted": {
+      "title": "hr.TimeEntry.Resubmitted",
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "SubmitRequest": {
+      "title": "hr.TimeEntry.Submit.Request",
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "SubmitResponse": {
+      "$ref": "SubmissionResult.json"
+    },
+    "Submitted": {
+      "title": "hr.TimeEntry.Submitted",
+      "type": "object",
+      "properties": {
+        "submitted_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "submitted_at"
+      ],
+      "additionalProperties": false
+    },
+    "TimeEntryState": {
+      "type": "string",
+      "enum": [
+        "Draft",
+        "Submitted",
+        "Approved",
+        "Rejected",
+        "Reopened"
+      ]
+    }
+  }
+}

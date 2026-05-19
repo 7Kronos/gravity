@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "hr.ContactInfo",
+  "x-gravity-version": 1,
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "preferred": {
+      "$ref": "ContactMethod.json"
+    }
+  },
+  "required": [
+    "email",
+    "preferred"
+  ],
+  "additionalProperties": false
+}

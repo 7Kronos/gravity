@@ -33,6 +33,12 @@
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
     <PackageVersion Include="FluentAssertions" Version="7.2.2" />
+
+    <!-- JSON Schema validator for Gravity.Dsl.Tests metaschema validation
+         (Phase 4 AC-4.4). Test-only dependency: kept out of the JSON Schema
+         emitter's transitive graph by PrivateAssets="all" on the test csproj's
+         PackageReference. Pinned to 7.x stable. -->
+    <PackageVersion Include="JsonSchema.Net" Version="7.3.4" />
   </ItemGroup>
 
 </Project>

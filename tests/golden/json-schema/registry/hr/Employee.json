@@ -1,0 +1,201 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "hr.Employee",
+  "x-gravity-version": 1,
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "first_name": {
+      "type": "string"
+    },
+    "last_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "hire_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "contract_type": {
+      "$ref": "ContractType.json"
+    },
+    "contact": {
+      "$ref": "ContactInfo.json"
+    },
+    "state": {
+      "$ref": "#/definitions/EmployeeState"
+    }
+  },
+  "required": [
+    "contract_type",
+    "email",
+    "first_name",
+    "hire_date",
+    "id",
+    "last_name",
+    "state"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "ActivateRequest": {
+      "title": "hr.Employee.Activate.Request",
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "ActivateResponse": {
+      "$ref": "ActivationResult.json"
+    },
+    "Activated": {
+      "title": "hr.Employee.Activated",
+      "type": "object",
+      "properties": {
+        "activated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "activated_at"
+      ],
+      "additionalProperties": false
+    },
+    "EmployeeState": {
+      "type": "string",
+      "enum": [
+        "Onboarding",
+        "Active",
+        "OnLeave",
+        "Terminated"
+      ]
+    },
+    "GoOnLeaveRequest": {
+      "title": "hr.Employee.GoOnLeave.Request",
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "GoOnLeaveResponse": {
+      "$ref": "LeaveResult.json"
+    },
+    "LeaveStarted": {
+      "title": "hr.Employee.LeaveStarted",
+      "type": "object",
+      "properties": {
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "started_at"
+      ],
+      "additionalProperties": false
+    },
+    "OnboardRequest": {
+      "title": "hr.Employee.Onboard.Request",
+      "type": "object",
+      "properties": {
+        "first_name": {
+          "type": "string"
+        },
+        "last_name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "hire_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "contract_type": {
+          "$ref": "ContractType.json"
+        }
+      },
+      "required": [
+        "contract_type",
+        "email",
+        "first_name",
+        "hire_date",
+        "last_name"
+      ],
+      "additionalProperties": false
+    },
+    "OnboardResponse": {
+      "$ref": "OnboardResult.json"
+    },
+    "ReturnRequest": {
+      "title": "hr.Employee.Return.Request",
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "ReturnResponse": {
+      "$ref": "ReturnResult.json"
+    },
+    "Returned": {
+      "title": "hr.Employee.Returned",
+      "type": "object",
+      "properties": {
+        "returned_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "returned_at"
+      ],
+      "additionalProperties": false
+    },
+    "TerminateRequest": {
+      "title": "hr.Employee.Terminate.Request",
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "TerminateResponse": {
+      "$ref": "TerminationResult.json"
+    },
+    "Terminated": {
+      "title": "hr.Employee.Terminated",
+      "type": "object",
+      "properties": {
+        "terminated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason",
+        "terminated_at"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

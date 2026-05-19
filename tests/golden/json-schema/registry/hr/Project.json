@@ -1,0 +1,226 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "hr.Project",
+  "x-gravity-version": 1,
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string"
+    },
+    "code": {
+      "type": "string"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "target_end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "references Employee by id",
+      "format": "uuid"
+    },
+    "state": {
+      "$ref": "#/definitions/ProjectState"
+    }
+  },
+  "required": [
+    "code",
+    "id",
+    "lead_id",
+    "name",
+    "start_date",
+    "state"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "CancelRequest": {
+      "title": "hr.Project.Cancel.Request",
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "CancelResponse": {
+      "$ref": "CancelResult.json"
+    },
+    "Cancelled": {
+      "title": "hr.Project.Cancelled",
+      "type": "object",
+      "properties": {
+        "cancelled_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "cancelled_at",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "CompleteRequest": {
+      "title": "hr.Project.Complete.Request",
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "CompleteResponse": {
+      "$ref": "CompleteResult.json"
+    },
+    "Completed": {
+      "title": "hr.Project.Completed",
+      "type": "object",
+      "properties": {
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "completed_at"
+      ],
+      "additionalProperties": false
+    },
+    "Held": {
+      "title": "hr.Project.Held",
+      "type": "object",
+      "properties": {
+        "held_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "held_at"
+      ],
+      "additionalProperties": false
+    },
+    "HoldRequest": {
+      "title": "hr.Project.Hold.Request",
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "HoldResponse": {
+      "$ref": "HoldResult.json"
+    },
+    "PlanRequest": {
+      "title": "hr.Project.Plan.Request",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "start_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "target_end_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "lead_id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "required": [
+        "code",
+        "lead_id",
+        "name",
+        "start_date"
+      ],
+      "additionalProperties": false
+    },
+    "PlanResponse": {
+      "$ref": "PlanResult.json"
+    },
+    "ProjectState": {
+      "type": "string",
+      "enum": [
+        "Planned",
+        "Active",
+        "OnHold",
+        "Completed",
+        "Cancelled"
+      ]
+    },
+    "ResumeRequest": {
+      "title": "hr.Project.Resume.Request",
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "ResumeResponse": {
+      "$ref": "ResumeResult.json"
+    },
+    "Resumed": {
+      "title": "hr.Project.Resumed",
+      "type": "object",
+      "properties": {
+        "resumed_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "resumed_at"
+      ],
+      "additionalProperties": false
+    },
+    "StartRequest": {
+      "title": "hr.Project.Start.Request",
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "StartResponse": {
+      "$ref": "StartResult.json"
+    },
+    "Started": {
+      "title": "hr.Project.Started",
+      "type": "object",
+      "properties": {
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "started_at"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

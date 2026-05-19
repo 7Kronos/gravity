@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "hr.ContactMethod",
+  "x-gravity-version": 1,
+  "type": "string",
+  "enum": [
+    "Email",
+    "Phone",
+    "None"
+  ]
+}
