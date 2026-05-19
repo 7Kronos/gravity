@@ -14,10 +14,13 @@
     <RootNamespace>Gravity.Dsl.Emitter.Sample.Outline</RootNamespace>
     <AssemblyName>Gravity.Dsl.Emitter.Sample.Outline</AssemblyName>
 
-    <!-- Sample, not a published reference: ship the source in `samples/` for
-         copy-paste; do NOT publish to NuGet (0.1.0-alpha2 was an inadvertent
-         publish from the first release run; delist via nuget.org if regretted). -->
-    <IsPackable>false</IsPackable>
+    <!-- Must remain IsPackable=true: AC-9.7-pack (FR-3015) packs this csproj
+         twice and asserts normalised SHA-256 equality through the post-pack
+         normaliser; AC-9c.7/9 use the resulting .nupkg as the sample-emitter
+         cross-package fixture. Distribution to NuGet.org is suppressed in the
+         release workflow (release.yml deletes the .Sample.Outline nupkg before
+         the push step). -->
+    <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <!-- FR-222: pack determinism inherits from Directory.Build.props; restated here

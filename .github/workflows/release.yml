@@ -111,6 +111,14 @@ jobs:
           path: artifacts/nupkgs/*.nupkg
           retention-days: 90
 
+      # Gravity.Dsl.Emitter.Sample.Outline must pack (AC-9.7-pack determinism
+      # and AC-9c.7/9 cross-package wiring), but it is a sample emitter and
+      # is intentionally NOT distributed via NuGet.org. Remove it from the
+      # push set after upload-artifact (so the artifact still captures
+      # every nupkg the build produced) and before the push step.
+      - name: Exclude sample emitter from NuGet push
+        run: rm -f artifacts/nupkgs/Gravity.Dsl.Emitter.Sample.Outline.*.nupkg
+
       - name: Push to NuGet
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
