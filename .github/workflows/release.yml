@@ -1,0 +1,123 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # for attaching nupkgs to the GitHub release
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+
+jobs:
+  pack-and-push:
+    name: pack + push to NuGet
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Optional: gate behind an environment so the NUGET_API_KEY secret is
+    # only available from this workflow context. Configure the
+    # `nuget-release` environment in repo settings with required reviewers
+    # if you want manual approval before publish.
+    environment: nuget-release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET (pinned via global.json)
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Derive package version from tag
+        id: ver
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          if [ -z "$VERSION" ]; then
+            echo "ERROR: empty version derived from tag '$TAG'" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing version: $VERSION"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('global.json', 'Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore (solution)
+        run: dotnet restore Gravity.Dsl.sln
+
+      - name: Restore (out-of-solution projects)
+        run: |
+          dotnet restore Gravity.Dsl.IntegrationHarness/Gravity.Dsl.IntegrationHarness.csproj
+          dotnet restore Gravity.Dsl.IntegrationHarness.Tests/Gravity.Dsl.IntegrationHarness.Tests.csproj
+          dotnet restore tools/nupkg-normaliser/Gravity.Dsl.NupkgNormaliser/Gravity.Dsl.NupkgNormaliser.csproj
+          dotnet restore tools/nupkg-normaliser/Gravity.Dsl.NupkgNormaliser.Tests/Gravity.Dsl.NupkgNormaliser.Tests.csproj
+
+      - name: Build solution (Release, with tag version)
+        run: dotnet build Gravity.Dsl.sln --configuration Release --no-restore -p:Version=${{ steps.ver.outputs.version }}
+
+      - name: Build out-of-solution projects (Release)
+        run: |
+          dotnet build Gravity.Dsl.IntegrationHarness/Gravity.Dsl.IntegrationHarness.csproj --configuration Release --no-restore
+          dotnet build Gravity.Dsl.IntegrationHarness.Tests/Gravity.Dsl.IntegrationHarness.Tests.csproj --configuration Release --no-restore
+          dotnet build tools/nupkg-normaliser/Gravity.Dsl.NupkgNormaliser/Gravity.Dsl.NupkgNormaliser.csproj --configuration Release --no-restore
+          dotnet build tools/nupkg-normaliser/Gravity.Dsl.NupkgNormaliser.Tests/Gravity.Dsl.NupkgNormaliser.Tests.csproj --configuration Release --no-restore
+
+      - name: AC-9c.1 grep guard
+        run: bash scripts/check-no-skipped-msbuild-facts.sh
+
+      - name: Test — fast lane (solution)
+        run: dotnet test Gravity.Dsl.sln --configuration Release --no-build --verbosity normal
+
+      - name: Test — integration harness unit tests
+        run: dotnet test Gravity.Dsl.IntegrationHarness.Tests/Gravity.Dsl.IntegrationHarness.Tests.csproj --configuration Release --no-build --verbosity normal
+
+      - name: Test — nupkg-normaliser unit tests
+        run: dotnet test tools/nupkg-normaliser/Gravity.Dsl.NupkgNormaliser.Tests/Gravity.Dsl.NupkgNormaliser.Tests.csproj --configuration Release --no-build --verbosity normal
+
+      - name: Integration harness (run-all)
+        run: dotnet run --project Gravity.Dsl.IntegrationHarness --configuration Release --no-build -- run-all --config Release
+
+      - name: Pack (Release, with tag version)
+        run: dotnet pack Gravity.Dsl.sln --configuration Release --no-build -p:Version=${{ steps.ver.outputs.version }} --output ./artifacts/nupkgs
+
+      - name: Upload integration-harness artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-harness-artifacts
+          path: artifacts/integration-harness/
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload nupkg artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: nupkgs-${{ steps.ver.outputs.version }}
+          path: artifacts/nupkgs/*.nupkg
+          retention-days: 90
+
+      - name: Push to NuGet
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "ERROR: NUGET_API_KEY secret is not set." >&2
+            echo "Configure it in repo Settings -> Secrets and variables -> Actions" >&2
+            echo "(or in the 'nuget-release' environment)." >&2
+            exit 1
+          fi
+          dotnet nuget push "artifacts/nupkgs/*.nupkg" \
+            --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate

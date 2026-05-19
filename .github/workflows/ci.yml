@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+
+jobs:
+  build-test-harness:
+    name: build + test + integration harness (ubuntu)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET (pinned via global.json)
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('global.json', 'Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      # Restore the solution (LD-19: the harness console, its tests, and the
+      # nupkg-normaliser are deliberately out-of-solution and need separate
+      # invocations).
+      - name: Restore (solution)
+        run: dotnet restore Gravity.Dsl.sln
+
+      - name: Restore (out-of-solution projects)
+        run: |
+          dotnet restore Gravity.Dsl.IntegrationHarness/Gravity.Dsl.IntegrationHarness.csproj
+          dotnet restore Gravity.Dsl.IntegrationHarness.Tests/Gravity.Dsl.IntegrationHarness.Tests.csproj
+          dotnet restore tools/nupkg-normaliser/Gravity.Dsl.NupkgNormaliser/Gravity.Dsl.NupkgNormaliser.csproj
+          dotnet restore tools/nupkg-normaliser/Gravity.Dsl.NupkgNormaliser.Tests/Gravity.Dsl.NupkgNormaliser.Tests.csproj
+
+      - name: Build solution (Release)
+        run: dotnet build Gravity.Dsl.sln --configuration Release --no-restore
+
+      - name: Build out-of-solution projects (Release)
+        run: |
+          dotnet build Gravity.Dsl.IntegrationHarness/Gravity.Dsl.IntegrationHarness.csproj --configuration Release --no-restore
+          dotnet build Gravity.Dsl.IntegrationHarness.Tests/Gravity.Dsl.IntegrationHarness.Tests.csproj --configuration Release --no-restore
+          dotnet build tools/nupkg-normaliser/Gravity.Dsl.NupkgNormaliser/Gravity.Dsl.NupkgNormaliser.csproj --configuration Release --no-restore
+          dotnet build tools/nupkg-normaliser/Gravity.Dsl.NupkgNormaliser.Tests/Gravity.Dsl.NupkgNormaliser.Tests.csproj --configuration Release --no-restore
+
+      # AC-9c.1: assert that no [Fact(Skip=...)] attributes remain in the
+      # MsBuild tests dir and that MsBuildIntegrationFixture is gone.
+      - name: AC-9c.1 grep guard
+        run: bash scripts/check-no-skipped-msbuild-facts.sh
+
+      - name: Test — fast lane (solution)
+        run: dotnet test Gravity.Dsl.sln --configuration Release --no-build --verbosity normal
+
+      - name: Test — integration harness unit tests
+        run: dotnet test Gravity.Dsl.IntegrationHarness.Tests/Gravity.Dsl.IntegrationHarness.Tests.csproj --configuration Release --no-build --verbosity normal
+
+      - name: Test — nupkg-normaliser unit tests
+        run: dotnet test tools/nupkg-normaliser/Gravity.Dsl.NupkgNormaliser.Tests/Gravity.Dsl.NupkgNormaliser.Tests.csproj --configuration Release --no-build --verbosity normal
+
+      # FR-3040: wires the harness into CI. Subcommands:
+      # AC-9.7-pack, AC-9.11, AC-9.12, AC-9.13, AC-9.14, AC-9.15.
+      - name: Integration harness (run-all)
+        run: dotnet run --project Gravity.Dsl.IntegrationHarness --configuration Release --no-build -- run-all --config Release
+
+      - name: Upload integration-harness artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-harness-artifacts
+          path: artifacts/integration-harness/
+          if-no-files-found: ignore
+          retention-days: 14
