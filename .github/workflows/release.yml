@@ -88,8 +88,12 @@ jobs:
       - name: Integration harness (run-all)
         run: dotnet run --project Gravity.Dsl.IntegrationHarness --configuration Release --no-build -- run-all --config Release
 
+      # `dotnet pack --no-build` cannot be used here: Gravity.Dsl.MsBuild's
+      # `PackTaskFiles` target depends on `Build` to assemble the task-DLL
+      # dependency closure into `tasks/net9.0/` (see csproj line 92).
+      # Pack runs its own internal build using the existing restore cache.
       - name: Pack (Release, with tag version)
-        run: dotnet pack Gravity.Dsl.sln --configuration Release --no-build -p:Version=${{ steps.ver.outputs.version }} --output ./artifacts/nupkgs
+        run: dotnet pack Gravity.Dsl.sln --configuration Release -p:Version=${{ steps.ver.outputs.version }} --output ./artifacts/nupkgs
 
       - name: Upload integration-harness artifacts
         if: always()
