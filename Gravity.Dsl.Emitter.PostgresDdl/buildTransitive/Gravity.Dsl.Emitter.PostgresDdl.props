@@ -1,0 +1,20 @@
+<Project>
+
+  <!--
+    Phase 9 FR-224 cross-package emitter wiring. NuGet imports this .props file
+    at the top of the consuming .csproj. It contributes the PostgreSQL DDL
+    emitter assembly path to <GravityDslEmitterAssembly>; the main
+    Gravity.Dsl.MsBuild package's targets file then passes those items to
+    GravityDslGenTask, which loads each DLL and registers its IEmitter
+    implementations alongside the built-in C# reference emitter.
+
+    Consumers who want PostgreSQL DDL output add a <PackageReference> to this
+    package alongside <PackageReference Include="Gravity.Dsl.MsBuild" /> and the
+    wiring is automatic.
+  -->
+
+  <ItemGroup>
+    <GravityDslEmitterAssembly Include="$(MSBuildThisFileDirectory)..\lib\net9.0\Gravity.Dsl.Emitter.PostgresDdl.dll" />
+  </ItemGroup>
+
+</Project>
