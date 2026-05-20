@@ -1,0 +1,9 @@
+# Locally-packed NuGet artefacts. Recreate with scripts/pack.sh.
+local-packages/*.nupkg
+
+# Per-playground NuGet cache (kept off shared cache to avoid contamination).
+.nuget-cache/
+
+# Standard .NET build output.
+bin/
+obj/
