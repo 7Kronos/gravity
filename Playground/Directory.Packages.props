@@ -1,0 +1,16 @@
+<Project>
+
+  <!--
+    Inherit the repo-wide Central Package Management versions, then add the
+    playground-only pin for the locally-packed Gravity.Dsl.MsBuild. Version is
+    set by Playground/scripts/pack.sh (env: GRAVITY_PLAYGROUND_VERSION); keep
+    the literal below in sync with that script's default.
+  -->
+
+  <Import Project="..\Directory.Packages.props" />
+
+  <ItemGroup>
+    <PackageVersion Include="Gravity.Dsl.MsBuild" Version="0.1.0-playground" />
+  </ItemGroup>
+
+</Project>

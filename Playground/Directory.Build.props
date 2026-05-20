@@ -1,0 +1,12 @@
+<Project>
+
+  <!--
+    Playground-scoped overrides. Inherits the repo-root Directory.Build.props
+    explicitly (MSBuild discovery stops at the nearest Directory.Build.props
+    walking up from the project, so we re-import it here to keep the
+    BannedSymbols + determinism + TreatWarningsAsErrors contract intact).
+  -->
+
+  <Import Project="..\Directory.Build.props" />
+
+</Project>

@@ -1,0 +1,62 @@
+namespace hr;
+
+// A value type — emitted as a C# record.
+type ContactInfo {
+  email:      String;
+  phone:      String?;
+}
+
+// An enum — emitted as a C# enum with explicit member order.
+enum ContractType { CDI, CDD, Freelance, Intern }
+
+// Command result types — referenced from the commands{} block below.
+type OnboardResult     { ok: Boolean; message: String?; }
+type TerminationResult { ok: Boolean; message: String?; }
+
+entity Employee version 1 {
+
+  // Identity is exposed on the emitted record as `Guid Id`.
+  identity id: UUID;
+
+  // Properties become record positional parameters in the generated C#.
+  // The `?` suffix maps to a C# nullable reference type.
+  properties {
+    first_name:    String;
+    last_name:     String;
+    email:         String;
+    hire_date:     Date;
+    contract_type: ContractType;
+    contact:       ContactInfo?;
+  }
+
+  // Lifecycle states + transitions — emitted as a public enum named
+  // `<Entity>State`, plus a final `State` property on the record.
+  lifecycle {
+    states {
+      Onboarding, Active, Terminated;
+    }
+    transitions {
+      Onboarding -> Active     on Activated;
+      Active     -> Terminated on Terminated;
+    }
+  }
+
+  // Domain events — emitted as sealed records in `<Entity>Events.cs`.
+  events {
+    Activated  { activated_at: DateTime; };
+    Terminated { terminated_at: DateTime; reason: String; };
+  }
+
+  // Commands — emitted as sealed records in `<Entity>Commands.cs`. The
+  // `returns` and `with side_effect` clauses surface as XML doc comments
+  // on the generated record so downstream tooling can reason about them.
+  commands {
+    Onboard(first_name: String, last_name: String, email: String, hire_date: Date, contract_type: ContractType)
+      returns OnboardResult
+      with side_effect Activated;
+
+    Terminate(reason: String)
+      returns TerminationResult
+      with side_effect Terminated;
+  }
+}
