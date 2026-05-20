@@ -29,6 +29,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gravity.Dsl.Emitter.JsonSch
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gravity.Dsl.IntegrationHarness.Shared", "Gravity.Dsl.IntegrationHarness.Shared\Gravity.Dsl.IntegrationHarness.Shared.csproj", "{9E58AECB-1796-4760-A15C-419C6E606F46}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gravity.Dsl.Emitter.PostgresDdl", "Gravity.Dsl.Emitter.PostgresDdl\Gravity.Dsl.Emitter.PostgresDdl.csproj", "{8C2D3941-8960-40EE-8633-9A07443375F2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -159,6 +161,18 @@ Global
 		{9E58AECB-1796-4760-A15C-419C6E606F46}.Release|x64.Build.0 = Release|Any CPU
 		{9E58AECB-1796-4760-A15C-419C6E606F46}.Release|x86.ActiveCfg = Release|Any CPU
 		{9E58AECB-1796-4760-A15C-419C6E606F46}.Release|x86.Build.0 = Release|Any CPU
+		{8C2D3941-8960-40EE-8633-9A07443375F2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8C2D3941-8960-40EE-8633-9A07443375F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8C2D3941-8960-40EE-8633-9A07443375F2}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8C2D3941-8960-40EE-8633-9A07443375F2}.Debug|x64.Build.0 = Debug|Any CPU
+		{8C2D3941-8960-40EE-8633-9A07443375F2}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8C2D3941-8960-40EE-8633-9A07443375F2}.Debug|x86.Build.0 = Debug|Any CPU
+		{8C2D3941-8960-40EE-8633-9A07443375F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8C2D3941-8960-40EE-8633-9A07443375F2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8C2D3941-8960-40EE-8633-9A07443375F2}.Release|x64.ActiveCfg = Release|Any CPU
+		{8C2D3941-8960-40EE-8633-9A07443375F2}.Release|x64.Build.0 = Release|Any CPU
+		{8C2D3941-8960-40EE-8633-9A07443375F2}.Release|x86.ActiveCfg = Release|Any CPU
+		{8C2D3941-8960-40EE-8633-9A07443375F2}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
