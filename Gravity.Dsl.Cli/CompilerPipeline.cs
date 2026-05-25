@@ -129,10 +129,8 @@ public static class CompilerPipeline
     /// <param name="outputRoot">Output directory; created if missing.</param>
     /// <param name="currentDate">Date passed to <see cref="Validator.Validate"/> for
     /// Phase 8 deprecation-window evaluation (FR-140).</param>
-    /// <param name="configFile">Optional explicit path to a Gravity config file.
-    /// When null, the loader probes the resolver root for <c>.gravity.yaml</c>
-    /// first, then the legacy <c>.gravity.config</c> (which emits a <c>CFG005</c>
-    /// deprecation warning when found).</param>
+    /// <param name="configFile">Optional explicit path to a <c>.gravity.yaml</c> file.
+    /// When null, defaults to a <c>.gravity.yaml</c> sibling of the first source file.</param>
     /// <param name="emitterFilter">Optional emitter whitelist.</param>
     /// <param name="extraEmitterAssemblies">Optional absolute paths to additional emitter
     /// assemblies (e.g. <c>Gravity.Dsl.Emitter.Sample.Outline.dll</c>). Each assembly is loaded

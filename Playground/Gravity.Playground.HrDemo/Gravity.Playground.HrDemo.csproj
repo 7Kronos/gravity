@@ -32,10 +32,7 @@
     <GravityDslOutputDir>$(BaseIntermediateOutputPath)$(Configuration)\$(TargetFramework)\Generated</GravityDslOutputDir>
 
     <!-- Point the MSBuild target at the per-project .gravity.yaml so the
-         C# emitter picks up the namespace + output overrides. The canonical
-         extension is .yaml (Rider/VS Code auto-detect it); the legacy
-         .gravity.config filename is still accepted but surfaces a CFG005
-         deprecation warning at build time. -->
+         C# emitter picks up the namespace + output overrides. -->
     <GravityDslConfig>$(MSBuildProjectDirectory)\.gravity.yaml</GravityDslConfig>
 
     <!-- The current C# emitter does not write a `#nullable enable` directive
