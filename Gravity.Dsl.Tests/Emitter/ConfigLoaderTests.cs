@@ -129,4 +129,85 @@ emitters:
         var result = ConfigLoader.LoadFromString(yaml, ".gravity.config", BuildRegistry());
         result.Diagnostics.Should().Contain(d => d.RuleId == "CFG001" && d.Message.Contains("bogus_setting"));
     }
+
+    [Fact]
+    public void LoadFile_LegacyFilename_EmitsCfg005Deprecation()
+    {
+        // Load the same content from disk under the legacy and preferred filenames;
+        // only the legacy filename should surface a CFG005 deprecation warning.
+        var yaml = "emitters:\n  schema-stub:\n    output: gen/schema\n";
+        var dir = Directory.CreateTempSubdirectory("gravity-cfg-tests-").FullName;
+        try
+        {
+            var legacyPath = Path.Combine(dir, ConfigLoader.LegacyFileName);
+            var preferredPath = Path.Combine(dir, ConfigLoader.PreferredFileName);
+            File.WriteAllText(legacyPath, yaml);
+            File.WriteAllText(preferredPath, yaml);
+
+            var legacyResult = ConfigLoader.LoadFile(legacyPath, BuildRegistry());
+            legacyResult.Diagnostics.Should().ContainSingle(d =>
+                d.RuleId == "CFG005"
+                && d.Severity == Gravity.Dsl.Ast.DiagnosticSeverity.Warning
+                && d.Message.Contains(ConfigLoader.PreferredFileName));
+            legacyResult.Configs.Should().ContainKey("schema-stub");
+
+            var preferredResult = ConfigLoader.LoadFile(preferredPath, BuildRegistry());
+            preferredResult.Diagnostics.Should().NotContain(d => d.RuleId == "CFG005");
+            preferredResult.Configs.Should().ContainKey("schema-stub");
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void LoadFile_LegacyFilename_MixedCase_StillEmitsCfg005()
+    {
+        // On Windows / default-case-insensitive macOS volumes the file system
+        // resolves ".gravity.Config" to the same inode as ".gravity.config";
+        // we want CFG005 to fire either way. On case-sensitive Linux this test
+        // still asserts the loader handles the mixed-case literal we hand it
+        // (the temp file is created with the mixed-case name verbatim).
+        var yaml = "emitters:\n  schema-stub:\n    output: gen/schema\n";
+        var dir = Directory.CreateTempSubdirectory("gravity-cfg-case-").FullName;
+        try
+        {
+            var mixedCase = Path.Combine(dir, ".gravity.Config");
+            File.WriteAllText(mixedCase, yaml);
+            var result = ConfigLoader.LoadFile(mixedCase, BuildRegistry());
+            result.Diagnostics.Should().Contain(d =>
+                d.RuleId == "CFG005"
+                && d.Severity == Gravity.Dsl.Ast.DiagnosticSeverity.Warning);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void FindInDirectory_PrefersYamlOverLegacyConfig()
+    {
+        var dir = Directory.CreateTempSubdirectory("gravity-cfg-probe-").FullName;
+        try
+        {
+            // Neither present -> null.
+            ConfigLoader.FindInDirectory(dir).Should().BeNull();
+
+            // Only legacy present -> legacy.
+            var legacy = Path.Combine(dir, ConfigLoader.LegacyFileName);
+            File.WriteAllText(legacy, "emitters: {}\n");
+            ConfigLoader.FindInDirectory(dir).Should().Be(legacy);
+
+            // Both present -> preferred wins.
+            var preferred = Path.Combine(dir, ConfigLoader.PreferredFileName);
+            File.WriteAllText(preferred, "emitters: {}\n");
+            ConfigLoader.FindInDirectory(dir).Should().Be(preferred);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
 }

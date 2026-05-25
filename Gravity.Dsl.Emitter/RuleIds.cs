@@ -3,7 +3,7 @@ namespace Gravity.Dsl.Emitter;
 /// <summary>
 /// Stable rule-id strings emitted by the emitter host and config loader.
 /// HOST00x — emitter-host diagnostics (Phase 2, plan.md §3.6).
-/// CFG00x  — <c>.gravity.config</c> loader diagnostics.
+/// CFG00x  — Gravity config loader diagnostics.
 /// </summary>
 internal static class RuleIds
 {
@@ -16,7 +16,7 @@ internal static class RuleIds
     /// <summary>Two enabled emitters configured with the same output directory.</summary>
     public const string Host003 = "HOST003";
 
-    /// <summary>Unknown top-level key in <c>.gravity.config</c> (warning).</summary>
+    /// <summary>Unknown top-level key in the emitter config file (warning).</summary>
     public const string Cfg001 = "CFG001";
 
     /// <summary>Type mismatch between configured value and schema (error).</summary>
@@ -27,4 +27,7 @@ internal static class RuleIds
 
     /// <summary>Emitter <c>output</c> path is rooted or escapes the configured output root (error).</summary>
     public const string Cfg004 = "CFG004";
+
+    /// <summary>Legacy <c>.gravity.config</c> filename is in use; rename to <c>.gravity.yaml</c> (warning).</summary>
+    public const string Cfg005 = "CFG005";
 }

@@ -12,7 +12,9 @@
     <!-- per plan.md §6 risk register: pin a specific minor; bump deliberately when goldens change. -->
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" />
 
-    <!-- YAML loader for .gravity.config. Pinned to last 16.x; 17.x exists but plan.md calls for 16.x. -->
+    <!-- YAML loader for the Gravity emitter config file (.gravity.yaml; legacy
+         .gravity.config still accepted with CFG005). Pinned to last 16.x; 17.x
+         exists but plan.md calls for 16.x. -->
     <PackageVersion Include="YamlDotNet" Version="16.3.0" />
 
     <!-- CLI surface (gravc). Pinned per plan.md / executor brief. -->

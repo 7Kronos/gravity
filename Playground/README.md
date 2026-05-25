@@ -22,7 +22,7 @@ Playground/
 ├── local-packages/                         ← local NuGet feed (gitignored .nupkg)
 ├── Gravity.Playground.HrDemo/              ← the actual consumer project
 │   ├── Gravity.Playground.HrDemo.csproj    ← <PackageReference Gravity.Dsl.MsBuild />
-│   ├── .gravity.config                     ← C# emitter config (namespace, output subdir)
+│   ├── .gravity.yaml                       ← C# emitter config (namespace, output subdir)
 │   └── Hr.gravity                          ← the .gravity source
 └── golden/csharp/hr/                       ← frozen reference output (checked in)
     ├── Employee.cs
@@ -50,7 +50,7 @@ dotnet build Playground.sln
 1. Restore `Gravity.Dsl.MsBuild` from `local-packages/`.
 2. Auto-import `buildTransitive/Gravity.Dsl.MsBuild.props` + `.targets`.
 3. Run the `GravityDslGenerate` target before `CoreCompile`.
-4. The target reads `Hr.gravity` + `.gravity.config`, invokes the C#
+4. The target reads `Hr.gravity` + `.gravity.yaml`, invokes the C#
    emitter, and writes `.cs` files under
    `obj/Debug/net9.0/Generated/csharp/hr/`.
 5. The target adds those files to `<Compile>` so they're compiled into
@@ -120,7 +120,7 @@ entity Employee version 1 {
 
 Eight files, one per top-level declaration plus per-entity bundles for
 events and commands. `namespace AcmeCo.Domain.hr;` is the
-`.gravity.config` namespace prefix joined to the `.gravity` file's own
+`.gravity.yaml` namespace prefix joined to the `.gravity` file's own
 `namespace hr;` declaration.
 
 #### Employee.cs — the entity record

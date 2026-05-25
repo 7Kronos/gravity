@@ -9,14 +9,23 @@ using YamlDotNet.RepresentationModel;
 namespace Gravity.Dsl.Emitter;
 
 /// <summary>
-/// Parses <c>.gravity.config</c> YAML into one <see cref="EmitterConfig"/> per
+/// Parses the Gravity emitter config YAML into one <see cref="EmitterConfig"/> per
 /// emitter target named in the file. The loader is schema-driven: each emitter
 /// section is validated against the corresponding <see cref="IEmitter.ConfigurationSchema"/>,
 /// producing <c>CFG001</c> for unknown top-level keys, <c>CFG002</c> for type
-/// mismatches, and <c>CFG003</c> for missing required keys.
+/// mismatches, and <c>CFG003</c> for missing required keys. The canonical filename
+/// is <see cref="PreferredFileName"/> (<c>.gravity.yaml</c>); the legacy
+/// <see cref="LegacyFileName"/> (<c>.gravity.config</c>) is still accepted but
+/// triggers a <c>CFG005</c> deprecation warning to nudge consumers to rename.
 /// </summary>
 public static class ConfigLoader
 {
+    /// <summary>Canonical config filename. IDEs that key off the extension (e.g. Rider, VS Code) treat <c>.yaml</c> as YAML out of the box.</summary>
+    public const string PreferredFileName = ".gravity.yaml";
+
+    /// <summary>Legacy config filename, accepted with a <c>CFG005</c> deprecation warning.</summary>
+    public const string LegacyFileName = ".gravity.config";
+
     /// <summary>Result of <see cref="LoadFromString"/> / <see cref="LoadFile"/>.</summary>
     public sealed record LoadResult(
         ImmutableSortedDictionary<string, EmitterConfig> Configs,
@@ -25,13 +34,52 @@ public static class ConfigLoader
     private static readonly HashSet<string> KnownTopLevelKeys =
         new(StringComparer.Ordinal) { "emitters" };
 
-    /// <summary>Convenience overload that reads <paramref name="path"/> from disk.</summary>
+    /// <summary>
+    /// Probe <paramref name="directory"/> for a Gravity config file, preferring
+    /// <see cref="PreferredFileName"/> and falling back to <see cref="LegacyFileName"/>.
+    /// Returns the absolute path to the file if one exists; <c>null</c> otherwise.
+    /// </summary>
+    public static string? FindInDirectory(string directory)
+    {
+        if (directory is null) throw new ArgumentNullException(nameof(directory));
+        var preferred = Path.Combine(directory, PreferredFileName);
+        if (File.Exists(preferred)) return preferred;
+        var legacy = Path.Combine(directory, LegacyFileName);
+        if (File.Exists(legacy)) return legacy;
+        return null;
+    }
+
+    /// <summary>
+    /// Convenience overload that reads <paramref name="path"/> from disk. When the
+    /// supplied path's filename matches <see cref="LegacyFileName"/>, a single
+    /// <c>CFG005</c> deprecation warning is prepended to the diagnostics so the
+    /// rename nudge propagates to every caller (CLI, MSBuild task, tests).
+    /// </summary>
     public static LoadResult LoadFile(string path, EmitterRegistry registry)
     {
         if (path is null) throw new ArgumentNullException(nameof(path));
         if (registry is null) throw new ArgumentNullException(nameof(registry));
         var text = File.ReadAllText(path);
-        return LoadFromString(text, path, registry);
+        var inner = LoadFromString(text, path, registry);
+
+        // Case-insensitive: on Windows / default macOS the file system resolves
+        // ".gravity.Config" to the same file as ".gravity.config", and we want the
+        // CFG005 nudge to fire on either form.
+        var fileName = Path.GetFileName(path);
+        if (!string.Equals(fileName, LegacyFileName, StringComparison.OrdinalIgnoreCase))
+        {
+            return inner;
+        }
+
+        var diags = ImmutableArray.CreateBuilder<Diagnostic>();
+        diags.Add(new Diagnostic(
+            DiagnosticSeverity.Warning,
+            RuleIds.Cfg005,
+            "configuration filename '" + LegacyFileName + "' is deprecated; rename to '"
+                + PreferredFileName + "' (contents are unchanged)",
+            new SourceSpan(path, 1, 1, 0)));
+        diags.AddRange(inner.Diagnostics);
+        return new LoadResult(inner.Configs, diags.ToImmutable());
     }
 
     /// <summary>Parse <paramref name="yaml"/>; <paramref name="sourcePath"/> is used only for diagnostic spans.</summary>
@@ -55,7 +103,7 @@ public static class ConfigLoader
             diagnostics.Add(new Diagnostic(
                 DiagnosticSeverity.Error,
                 RuleIds.Cfg002,
-                "could not parse .gravity.config YAML: " + ex.Message,
+                "could not parse Gravity config YAML: " + ex.Message,
                 new SourceSpan(sourcePath, 1, 1, 0)));
             return new LoadResult(configs.ToImmutable(), diagnostics.ToImmutable());
         }
@@ -70,7 +118,7 @@ public static class ConfigLoader
             diagnostics.Add(new Diagnostic(
                 DiagnosticSeverity.Error,
                 RuleIds.Cfg002,
-                ".gravity.config root must be a YAML mapping",
+                "Gravity config root must be a YAML mapping",
                 SpanOf(root, sourcePath)));
             return new LoadResult(configs.ToImmutable(), diagnostics.ToImmutable());
         }
@@ -98,7 +146,7 @@ public static class ConfigLoader
                 diagnostics.Add(new Diagnostic(
                     DiagnosticSeverity.Warning,
                     RuleIds.Cfg001,
-                    "unknown top-level key '" + keyText + "' in .gravity.config",
+                    "unknown top-level key '" + keyText + "' in Gravity config",
                     SpanOf(keyNode, sourcePath)));
             }
         }

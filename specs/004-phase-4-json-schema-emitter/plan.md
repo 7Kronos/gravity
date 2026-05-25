@@ -632,7 +632,7 @@ The emitter is discovered by `EmitterRegistry.Discover` (Phase 0–3) via assemb
 </Project>
 ```
 
-For consumers who reference `Gravity.Dsl.Emitter.JsonSchema` directly (via NuGet `<PackageReference>` alongside `Gravity.Dsl.MsBuild`), the wiring is automatic. For consumers who use the standalone CLI, the emitter DLL must be discoverable by `EmitterRegistry.Discover` — which is the case when the DLL is in the host's plugin path (typically `tasks/net9.0/` under the `Gravity.Dsl.MsBuild` package layout, or on the CLI's discovery search path). `samples/registry/.gravity.config` is extended to include a documented example `json-schema:` block; the existing Phase 0–3 sample configs are not otherwise touched.
+For consumers who reference `Gravity.Dsl.Emitter.JsonSchema` directly (via NuGet `<PackageReference>` alongside `Gravity.Dsl.MsBuild`), the wiring is automatic. For consumers who use the standalone CLI, the emitter DLL must be discoverable by `EmitterRegistry.Discover` — which is the case when the DLL is in the host's plugin path (typically `tasks/net9.0/` under the `Gravity.Dsl.MsBuild` package layout, or on the CLI's discovery search path). `samples/registry/.gravity.yaml` is extended to include a documented example `json-schema:` block; the existing Phase 0–3 sample configs are not otherwise touched.
 
 ## 4. Determinism strategy
 

@@ -105,7 +105,7 @@ public static class CompilerPipeline
             return new PipelineResult(false, diags.ToImmutable());
         }
 
-        var configPath = Path.Combine(inputRoot, ".gravity.config");
+        var configPath = ConfigLoader.FindInDirectory(inputRoot);
         var configs = LoadConfigs(configPath, registry, diags);
         if (HasFatalError(diags))
         {
@@ -129,8 +129,10 @@ public static class CompilerPipeline
     /// <param name="outputRoot">Output directory; created if missing.</param>
     /// <param name="currentDate">Date passed to <see cref="Validator.Validate"/> for
     /// Phase 8 deprecation-window evaluation (FR-140).</param>
-    /// <param name="configFile">Optional explicit path to a <c>.gravity.config</c> file.
-    /// When null, defaults to a <c>.gravity.config</c> sibling of the first source file.</param>
+    /// <param name="configFile">Optional explicit path to a Gravity config file.
+    /// When null, the loader probes the resolver root for <c>.gravity.yaml</c>
+    /// first, then the legacy <c>.gravity.config</c> (which emits a <c>CFG005</c>
+    /// deprecation warning when found).</param>
     /// <param name="emitterFilter">Optional emitter whitelist.</param>
     /// <param name="extraEmitterAssemblies">Optional absolute paths to additional emitter
     /// assemblies (e.g. <c>Gravity.Dsl.Emitter.Sample.Outline.dll</c>). Each assembly is loaded
@@ -245,13 +247,13 @@ public static class CompilerPipeline
         return string.IsNullOrEmpty(result) ? Directory.GetCurrentDirectory() : result;
     }
 
-    private static string ResolveConfigPath(string? explicitConfig, string resolverRoot)
+    private static string? ResolveConfigPath(string? explicitConfig, string resolverRoot)
     {
         if (!string.IsNullOrEmpty(explicitConfig))
         {
             return Path.GetFullPath(explicitConfig);
         }
-        return Path.Combine(resolverRoot, ".gravity.config");
+        return ConfigLoader.FindInDirectory(resolverRoot);
     }
 
     private static EmitterRegistry BuildRegistry(IReadOnlyList<string>? extraAssemblies = null)
@@ -354,11 +356,11 @@ public static class CompilerPipeline
     }
 
     private static IReadOnlyDictionary<string, EmitterConfig> LoadConfigs(
-        string configPath,
+        string? configPath,
         EmitterRegistry registry,
         ImmutableArray<Diagnostic>.Builder diags)
     {
-        if (!File.Exists(configPath))
+        if (string.IsNullOrEmpty(configPath) || !File.Exists(configPath))
         {
             // Default: every registered emitter enabled with an output directory of
             // its TargetName. Phase 3 hard-codes a single emitter, so this is a

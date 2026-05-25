@@ -28,7 +28,7 @@ public interface IEmitter
     /// </summary>
     SemanticVersionRange SupportedAstVersions { get; }
 
-    /// <summary>Configuration schema the host uses to validate the user's <c>.gravity.config</c> block.</summary>
+    /// <summary>Configuration schema the host uses to validate the user's emitter block in <c>.gravity.yaml</c> (or the legacy <c>.gravity.config</c>).</summary>
     EmitterConfigSchema ConfigurationSchema { get; }
 
     /// <summary>Produce output for <paramref name="model"/> into <paramref name="sink"/>.</summary>

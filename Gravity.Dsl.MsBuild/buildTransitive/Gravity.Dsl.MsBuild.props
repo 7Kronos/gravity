@@ -17,6 +17,13 @@
 
     <!-- FR-200: opt-out for projects with fully-explicit <GravityDsl Include="..." /> lists. -->
     <GravityDslDisableDefaultItems Condition=" '$(GravityDslDisableDefaultItems)' == '' ">false</GravityDslDisableDefaultItems>
+
+    <!-- CFG005 is a one-time deprecation nudge fired when the legacy ".gravity.config"
+         filename is loaded. We explicitly exempt it from <TreatWarningsAsErrors> so a
+         consumer that hasn't yet renamed their file does not see their build fail
+         purely because of the deprecation warning. The consumer can drop this line
+         from $(WarningsNotAsErrors) once they migrate to ".gravity.yaml". -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);CFG005</WarningsNotAsErrors>
   </PropertyGroup>
 
   <!--

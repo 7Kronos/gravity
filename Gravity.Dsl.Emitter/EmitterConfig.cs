@@ -4,10 +4,12 @@ using System.Collections.Immutable;
 namespace Gravity.Dsl.Emitter;
 
 /// <summary>
-/// One emitter's resolved configuration block from <c>.gravity.config</c>, after
-/// validation against the emitter's <see cref="EmitterConfigSchema"/>. Values are
-/// keyed by configuration key (ordinal) and typed as <c>string</c>, <c>long</c>,
-/// or <c>bool</c> per the schema's <see cref="ConfigValueKind"/>.
+/// One emitter's resolved configuration block from the Gravity emitter config
+/// file (canonical <c>.gravity.yaml</c>; legacy <c>.gravity.config</c> also
+/// accepted), after validation against the emitter's
+/// <see cref="EmitterConfigSchema"/>. Values are keyed by configuration key
+/// (ordinal) and typed as <c>string</c>, <c>long</c>, or <c>bool</c> per the
+/// schema's <see cref="ConfigValueKind"/>.
 /// </summary>
 public sealed record EmitterConfig(
     string TargetName,

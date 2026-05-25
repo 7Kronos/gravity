@@ -22,7 +22,9 @@ host that invokes it.
 - `EmitterHost.Run(...)` — pre-flight checks (`HOST003`), parallel invocation,
   diagnostic sorting, deterministic commit.
 - `BufferedEmitterOutput` — in-memory sink the host hands each emitter.
-- `ConfigLoader` — `.gravity.config` YAML loader (`CFG001..CFG003`).
+- `ConfigLoader` — Gravity emitter config YAML loader. Canonical filename is
+  `.gravity.yaml`; the legacy `.gravity.config` is still accepted and surfaces
+  a `CFG005` deprecation warning. Diagnostics: `CFG001..CFG005`.
 
 ## Determinism
 

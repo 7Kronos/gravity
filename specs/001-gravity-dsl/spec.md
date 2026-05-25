@@ -108,7 +108,7 @@ Levels: **MUST**, **SHOULD**, **MAY**. Each requirement traces to a constitution
 ### 4.9 Emitter host
 
 - **FR-080 (MUST, VI).** The emitter host discovers emitters by scanning a configured plugin directory and loading assemblies that export at least one `IEmitter` implementation.
-- **FR-081 (MUST, VI).** The host loads emitter configuration from `.gravity.config` (YAML). Each emitter's section is validated against the emitter's published configuration schema.
+- **FR-081 (MUST, VI).** The host loads emitter configuration from `.gravity.yaml` (YAML). Each emitter's section is validated against the emitter's published configuration schema.
 - **FR-082 (MUST, VI).** Enabled emitters are invoked in parallel; output paths are written under each emitter's configured `output` directory.
 - **FR-083 (MUST, I, VI).** Every reference emitter writes byte-identical output for identical input across runs and across platforms.
 - **FR-097 (MUST, VI).** Emitter `output` paths must be relative and resolve within the configured output root; rooted paths and parent-directory escapes are rejected by the host pre-flight with `CFG004`. The pre-flight runs before the `HOST003` overlapping-output check so a single root-escape produces one targeted diagnostic.

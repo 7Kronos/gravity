@@ -14,7 +14,7 @@ Four scoped phases executed sequentially, with Phase 0 acting as the grammar-and
 |---|---|---|
 | 0. Spike | Working-draft grammar; AST sketch; hand-derived C# for `Employee`, `TimeEntry`, `Project`; parser-library decision recorded as LD-1 (Pidgin). | Reviewed grammar doc + AST record sketches + sample `.gravity` files parsed by a throwaway Pidgin prototype. |
 | 1. Compiler core | Lexer, parser, AST, resolver, validator. Round-trip tests pass. | AC-1 (spec.md §5) green. |
-| 2. AST + emitter host | `Gravity.Dsl.Ast` NuGet package; `IEmitter` contract; plugin discovery; `.gravity.config` loader; parallel invocation; determinism harness. | AC-4, AC-5, AC-6 green for a no-op stub emitter. |
+| 2. AST + emitter host | `Gravity.Dsl.Ast` NuGet package; `IEmitter` contract; plugin discovery; `.gravity.yaml` loader; parallel invocation; determinism harness. | AC-4, AC-5, AC-6 green for a no-op stub emitter. |
 | 3. C# reference emitter | `Gravity.Dsl.Emitter.CSharp`; golden-file tests; `gravc` CLI usable end-to-end on `samples/registry`. | AC-2, AC-3, AC-7 green. |
 
 Out-of-scope phases (4–10) are referenced but not addressed: JSON Schema, GraphQL, OpenAPI, AsyncAPI emitters; additive-only enforcement; MSBuild integration; OSS launch.
@@ -31,7 +31,7 @@ Gravity.Dsl/
 ├── Gravity.Dsl.Emitter.CSharp/       # C# reference emitter (NuGet)
 ├── Gravity.Dsl.Cli/                  # `gravc` CLI driver
 ├── Gravity.Dsl.Tests/                # xUnit: round-trip, golden, integration
-├── samples/registry/                 # Employee.gravity, TimeEntry.gravity, Project.gravity, .gravity.config
+├── samples/registry/                 # Employee.gravity, TimeEntry.gravity, Project.gravity, .gravity.yaml
 └── tests/golden/csharp/              # Byte-checked expected C# output
 ```
 
@@ -229,7 +229,7 @@ public sealed record EmitResult(IReadOnlyList<Diagnostic> Diagnostics);
 - `EmitterHost.Run(model, config, registry)` invokes enabled emitters in parallel using `Parallel.ForEachAsync`; each emitter writes through `IEmitterOutput`, which buffers writes in memory, sorts them by relative path (ordinal), then commits to disk after the emitter returns. This guarantees stable on-disk ordering (Principle I, FR-083).
 - **Pre-flight checks** before parallel invocation. Rule `CFG004` (runs first) rejects emitter `output` values that are rooted or, after canonicalisation against the configured output root, escape it; `HOST003` then catches two enabled emitters configured with the same `output` directory. Output directories must be disjoint. `BufferedEmitterOutput.WriteFile` independently rejects rooted relative paths and `..` segments at the buffer layer (FR-098); `CommitTo` re-canonicalises every buffered path and refuses to write any file whose canonical form escapes the per-emitter output root.
 - Diagnostics returned by each emitter are sorted by `(Span.Path, Span.Line, Span.Column, RuleId)` before propagation to the CLI, so reporting order is deterministic regardless of parallel completion order.
-- Configuration loader parses `.gravity.config` (YAML via `YamlDotNet`) into `Dictionary<string, EmitterConfig>`; each entry is validated against the corresponding emitter's `ConfigurationSchema`.
+- Configuration loader parses `.gravity.yaml` (YAML via `YamlDotNet`) into `Dictionary<string, EmitterConfig>`; each entry is validated against the corresponding emitter's `ConfigurationSchema`.
 
 ### 3.7 C# reference emitter (`Gravity.Dsl.Emitter.CSharp`)
 
