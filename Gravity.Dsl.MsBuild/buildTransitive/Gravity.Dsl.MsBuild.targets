@@ -12,6 +12,23 @@
   <UsingTask TaskName="Gravity.Dsl.MsBuild.GravityDslGenTask"
              AssemblyFile="$(MSBuildThisFileDirectory)..\tasks\net9.0\Gravity.Dsl.MsBuild.dll" />
 
+  <!--
+    Reference emitters bundled inside Gravity.Dsl.MsBuild's tasks/net9.0/. Consumers
+    that add a single <PackageReference Include="Gravity.Dsl.MsBuild" /> get the full
+    reference emitter set discovered automatically. Third-party emitter packages
+    contribute their own <GravityDslEmitterAssembly> items on top via their
+    buildTransitive/*.props — that channel is unchanged.
+
+    The Condition="Exists(...)" guards keep this robust if a future build trims a
+    specific emitter DLL out of tasks/.
+  -->
+  <ItemGroup>
+    <GravityDslEmitterAssembly Include="$(MSBuildThisFileDirectory)..\tasks\net9.0\Gravity.Dsl.Emitter.JsonSchema.dll"
+                               Condition="Exists('$(MSBuildThisFileDirectory)..\tasks\net9.0\Gravity.Dsl.Emitter.JsonSchema.dll')" />
+    <GravityDslEmitterAssembly Include="$(MSBuildThisFileDirectory)..\tasks\net9.0\Gravity.Dsl.Emitter.PostgresDdl.dll"
+                               Condition="Exists('$(MSBuildThisFileDirectory)..\tasks\net9.0\Gravity.Dsl.Emitter.PostgresDdl.dll')" />
+  </ItemGroup>
+
   <Target Name="GravityDslGenerate"
           BeforeTargets="CoreCompile"
           Condition=" '@(GravityDsl)' != '' "
