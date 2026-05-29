@@ -43,7 +43,7 @@ Gravity.Dsl/
 ├── tests/integration/msbuild-smoke/           # NEW: end-to-end fixture (AC-9.2, AC-9.5)
 │   ├── MsBuildSmoke.csproj                    # NEW: <PackageReference Include="Gravity.Dsl.MsBuild" />
 │   ├── nuget.config                           # NEW: points at the in-repo local-packages/ feed
-│   ├── .gravity.config                        # NEW: csharp + outline emitters enabled
+│   ├── .gravity.yaml                        # NEW: csharp + outline emitters enabled
 │   └── domain/Employee.gravity                # NEW: re-uses Phase 0–3 canonical sample verbatim
 ├── tests/integration/msbuild-smoke-broken/    # NEW: parse-error parity fixture (AC-9.3)
 │   ├── MsBuildSmokeBroken.csproj
@@ -52,7 +52,7 @@ Gravity.Dsl/
 ├── tests/integration/msbuild-smoke-outline-only/  # NEW: outline-only consumer (AC-9.8)
 │   ├── MsBuildSmokeOutline.csproj
 │   ├── nuget.config
-│   ├── .gravity.config                        # outline emitter only; csharp absent
+│   ├── .gravity.yaml                        # outline emitter only; csharp absent
 │   └── domain/Employee.gravity
 ├── tests/integration/msbuild-smoke-host002/   # NEW: HOST002 cross-claim fixture (AC-9.10)
 │   ├── MsBuildSmokeHost002.csproj
@@ -520,7 +520,7 @@ Step 5 uses `System.IO.Compression.ZipArchive` enumeration — no shell-out, no 
 
 ### 5.5 Sample emitter end-to-end consumer test (AC-9.8)
 
-`tests/integration/msbuild-smoke-outline-only/MsBuildSmokeOutline.csproj` declares both `<PackageReference Include="Gravity.Dsl.MsBuild" />` and `<PackageReference Include="Gravity.Dsl.Emitter.Sample.Outline" />`. Its `.gravity.config` lists only the `outline:` block (no `csharp:`). The smoke driver builds it and asserts (a) exit code `0`, (b) `obj/Generated/outline/Employee.md` exists, (c) `obj/Generated/csharp/` does not exist (the `csharp` emitter is registered but disabled by config absence — the existing `Gravity.Dsl.Emitter.ConfigLoader` semantics carry through unchanged).
+`tests/integration/msbuild-smoke-outline-only/MsBuildSmokeOutline.csproj` declares both `<PackageReference Include="Gravity.Dsl.MsBuild" />` and `<PackageReference Include="Gravity.Dsl.Emitter.Sample.Outline" />`. Its `.gravity.yaml` lists only the `outline:` block (no `csharp:`). The smoke driver builds it and asserts (a) exit code `0`, (b) `obj/Generated/outline/Employee.md` exists, (c) `obj/Generated/csharp/` does not exist (the `csharp` emitter is registered but disabled by config absence — the existing `Gravity.Dsl.Emitter.ConfigLoader` semantics carry through unchanged).
 
 ### 5.6 Annotation-namespace collision through the MSBuild surface (AC-9.10)
 

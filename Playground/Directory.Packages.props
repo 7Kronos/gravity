@@ -10,7 +10,7 @@
   <Import Project="..\Directory.Packages.props" />
 
   <ItemGroup>
-    <PackageVersion Include="Gravity.Dsl.MsBuild" Version="0.1.0-playground" />
+    <PackageVersion Include="Gravity.Dsl.MsBuild" Version="0.3.0-playground" />
   </ItemGroup>
 
 </Project>

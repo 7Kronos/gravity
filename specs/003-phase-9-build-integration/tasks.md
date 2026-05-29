@@ -186,9 +186,9 @@ Goal: ship a deliberately minimal "outline" emitter (Markdown summary per entity
 - **Files.** `Gravity.Dsl.Tests/Emitter/Outline/RegistrationTests.cs`.
 - **Depends on.** T222.
 
-### T232 [P]. Document outline in samples/registry/.gravity.config (commented-out example)
-- **Acceptance.** Add a commented-out `# outline:` block to `samples/registry/.gravity.config` showing the configuration shape. This documents the sample without breaking the existing T172 csharp-only smoke flow.
-- **Files.** `samples/registry/.gravity.config`.
+### T232 [P]. Document outline in samples/registry/.gravity.yaml (commented-out example)
+- **Acceptance.** Add a commented-out `# outline:` block to `samples/registry/.gravity.yaml` showing the configuration shape. This documents the sample without breaking the existing T172 csharp-only smoke flow.
+- **Files.** `samples/registry/.gravity.yaml`.
 - **Depends on.** T223.
 
 ### T233. NuGet packaging metadata for sample emitter
@@ -212,9 +212,9 @@ Goal: validate that the MSBuild package and sample emitter actually work end-to-
 - **Files.** `tests/integration/msbuild-smoke/Smoke.csproj`, `tests/integration/msbuild-smoke/nuget.config`.
 - **Depends on.** T215.
 
-### T241 [P]. Smoke fixture .gravity.config
-- **Acceptance.** `tests/integration/msbuild-smoke/.gravity.config` enables only the `csharp` emitter (matches the Phase 0-3 default). Output path: `gen/csharp`.
-- **Files.** `tests/integration/msbuild-smoke/.gravity.config`.
+### T241 [P]. Smoke fixture .gravity.yaml
+- **Acceptance.** `tests/integration/msbuild-smoke/.gravity.yaml` enables only the `csharp` emitter (matches the Phase 0-3 default). Output path: `gen/csharp`.
+- **Files.** `tests/integration/msbuild-smoke/.gravity.yaml`.
 - **Depends on.** —
 
 ### T242 [P]. Smoke fixture .gravity sources
@@ -253,8 +253,8 @@ Goal: validate that the MSBuild package and sample emitter actually work end-to-
 - **Depends on.** T243.
 
 ### T248 [P]. Sample-emitter consumer test (AC-9.8)
-- **Acceptance.** `tests/integration/sample-outline-consumer/Smoke.csproj` references both `Gravity.Dsl.MsBuild` and `Gravity.Dsl.Emitter.Sample.Outline` via local-packages. `.gravity.config` enables the `outline` emitter. `dotnet build` produces `.md` files under the configured output dir. Asserts at least one `.md` per entity exists and is non-empty.
-- **Files.** `tests/integration/sample-outline-consumer/Smoke.csproj`, `tests/integration/sample-outline-consumer/.gravity.config`, `tests/integration/sample-outline-consumer/registry/*.gravity`, `Gravity.Dsl.Tests/MsBuild/SampleOutlineConsumerTests.cs`.
+- **Acceptance.** `tests/integration/sample-outline-consumer/Smoke.csproj` references both `Gravity.Dsl.MsBuild` and `Gravity.Dsl.Emitter.Sample.Outline` via local-packages. `.gravity.yaml` enables the `outline` emitter. `dotnet build` produces `.md` files under the configured output dir. Asserts at least one `.md` per entity exists and is non-empty.
+- **Files.** `tests/integration/sample-outline-consumer/Smoke.csproj`, `tests/integration/sample-outline-consumer/.gravity.yaml`, `tests/integration/sample-outline-consumer/registry/*.gravity`, `Gravity.Dsl.Tests/MsBuild/SampleOutlineConsumerTests.cs`.
 - **Depends on.** T234, T243.
 
 ### T249 [P]. HOST002 ownership test (AC-9.10)

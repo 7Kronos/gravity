@@ -24,8 +24,8 @@ Conventions:
 - **Depends on.** T001.
 
 ### T003. Author sample `.gravity` files for `Employee`, `TimeEntry`, `Project`
-- **Acceptance.** `samples/registry/Employee.gravity`, `samples/registry/TimeEntry.gravity`, `samples/registry/Project.gravity` cover identity, relations, properties, lifecycle, events, commands per `docs/specs.md` §4.2. `samples/registry/.gravity.config` enables only the `csharp` emitter.
-- **Files.** `samples/registry/*.gravity`, `samples/registry/.gravity.config`.
+- **Acceptance.** `samples/registry/Employee.gravity`, `samples/registry/TimeEntry.gravity`, `samples/registry/Project.gravity` cover identity, relations, properties, lifecycle, events, commands per `docs/specs.md` §4.2. `samples/registry/.gravity.yaml` enables only the `csharp` emitter.
+- **Files.** `samples/registry/*.gravity`, `samples/registry/.gravity.yaml`.
 - **Depends on.** —
 
 ### T004. Hand-write expected C# artifacts as goldens-in-waiting
@@ -166,7 +166,7 @@ Conventions:
 - **Files.** `Gravity.Dsl.Emitter/EmitterRegistry.cs` (extend), `Gravity.Dsl.Tests/Emitter/AnnotationNamespaceOwnershipTests.cs`.
 - **Depends on.** T032.
 
-### T034. `.gravity.config` loader
+### T034. `.gravity.yaml` loader
 - **Acceptance.** YAML loader parses the proposal's example config shape into `Dictionary<string, EmitterConfig>`. Unknown top-level keys produce warning `CFG001`. Each emitter section is validated against the emitter's `ConfigurationSchema` (rule `CFG002` for type mismatch, `CFG003` for missing required key).
 - **Files.** `Gravity.Dsl.Emitter/ConfigLoader.cs`, `Gravity.Dsl.Tests/Emitter/ConfigLoaderTests.cs`.
 - **Depends on.** T031.

@@ -45,7 +45,7 @@ Gravity.Dsl/
 ├── samples/registry/v2/
 │   ├── Employee.gravity                       # NEW: Employee@1 + Employee@2 deprecates chain
 │   ├── Project.gravity                        # NEW: Project@1 + Project@2 + qualified type-ref consumers
-│   └── .gravity.config                        # NEW: same csharp emitter config as v1
+│   └── .gravity.yaml                        # NEW: same csharp emitter config as v1
 ├── tests/fixtures/versioning/
 │   ├── parse/                                 # @N parse positive + negative cases (FR-100, FR-101)
 │   ├── resolver/                              # chain admission, missing-version, RES003 variant

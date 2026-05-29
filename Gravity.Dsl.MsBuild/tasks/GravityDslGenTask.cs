@@ -29,7 +29,7 @@ public sealed class GravityDslGenTask : MsBuildTask
     [Required]
     public string OutputDir { get; set; } = string.Empty;
 
-    /// <summary>Explicit path to a <c>.gravity.config</c> file (FR-203); empty falls back to default discovery.</summary>
+    /// <summary>Explicit path to a <c>.gravity.yaml</c> file (FR-203); empty falls back to default discovery.</summary>
     public string ConfigFile { get; set; } = string.Empty;
 
     /// <summary><c>--as-of YYYY-MM-DD</c> equivalent (FR-233); empty defaults to today (UTC).</summary>

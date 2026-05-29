@@ -4,7 +4,7 @@ using System.Collections.Immutable;
 namespace Gravity.Dsl.Emitter;
 
 /// <summary>
-/// One emitter's resolved configuration block from <c>.gravity.config</c>, after
+/// One emitter's resolved configuration block from <c>.gravity.yaml</c>, after
 /// validation against the emitter's <see cref="EmitterConfigSchema"/>. Values are
 /// keyed by configuration key (ordinal) and typed as <c>string</c>, <c>long</c>,
 /// or <c>bool</c> per the schema's <see cref="ConfigValueKind"/>.

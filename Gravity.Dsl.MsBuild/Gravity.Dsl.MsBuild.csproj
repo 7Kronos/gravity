@@ -55,12 +55,22 @@
   <ItemGroup>
     <!-- FR-230: the task shares the compiler + emitter host with the CLI. PrivateAssets=all
          keeps these out of consumer-facing dependency graphs; the closure is bundled
-         under tasks/net9.0/ by the PackTaskAssemblies target below. -->
-    <ProjectReference Include="..\Gravity.Dsl.Ast\Gravity.Dsl.Ast.csproj"                       PrivateAssets="all" />
-    <ProjectReference Include="..\Gravity.Dsl.Compiler\Gravity.Dsl.Compiler.csproj"             PrivateAssets="all" />
-    <ProjectReference Include="..\Gravity.Dsl.Emitter\Gravity.Dsl.Emitter.csproj"               PrivateAssets="all" />
-    <ProjectReference Include="..\Gravity.Dsl.Emitter.CSharp\Gravity.Dsl.Emitter.CSharp.csproj" PrivateAssets="all" />
-    <ProjectReference Include="..\Gravity.Dsl.Cli\Gravity.Dsl.Cli.csproj"                       PrivateAssets="all" />
+         under tasks/net9.0/ by the PackTaskAssemblies target below.
+
+         The reference emitters (JsonSchema, PostgresDdl) are bundled here too so a
+         consumer who adds a single <PackageReference Include="Gravity.Dsl.MsBuild" />
+         gets the full reference emitter set out of the box. The buildTransitive
+         targets file below re-publishes their DLL paths into <GravityDslEmitterAssembly>
+         so the host discovers them. The standalone Gravity.Dsl.Emitter.JsonSchema /
+         Gravity.Dsl.Emitter.PostgresDdl NuGets still ship for third parties that want
+         to consume an emitter independently of the MSBuild integration. -->
+    <ProjectReference Include="..\Gravity.Dsl.Ast\Gravity.Dsl.Ast.csproj"                              PrivateAssets="all" />
+    <ProjectReference Include="..\Gravity.Dsl.Compiler\Gravity.Dsl.Compiler.csproj"                    PrivateAssets="all" />
+    <ProjectReference Include="..\Gravity.Dsl.Emitter\Gravity.Dsl.Emitter.csproj"                      PrivateAssets="all" />
+    <ProjectReference Include="..\Gravity.Dsl.Emitter.CSharp\Gravity.Dsl.Emitter.CSharp.csproj"        PrivateAssets="all" />
+    <ProjectReference Include="..\Gravity.Dsl.Emitter.JsonSchema\Gravity.Dsl.Emitter.JsonSchema.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Gravity.Dsl.Emitter.PostgresDdl\Gravity.Dsl.Emitter.PostgresDdl.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Gravity.Dsl.Cli\Gravity.Dsl.Cli.csproj"                              PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>

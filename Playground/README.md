@@ -1,13 +1,17 @@
-# Gravity DSL Playground — C# emitter showcase
+# Gravity DSL Playground — multi-emitter showcase
 
 A self-contained .NET solution that pulls Gravity DSL into a normal `dotnet
-build` and runs the **C# emitter** at compile time. One `.gravity` source
-file becomes a compiled library, with no hand-authored `.cs` in sight.
+build` and runs **three emitters** (C#, JSON Schema, PostgreSQL DDL) at
+compile time. One `.gravity` source file becomes a compiled library plus a
+folder of JSON schemas plus a folder of SQL DDL — with no hand-authored
+`.cs`, `.json`, or `.sql` in sight.
 
 The goal is not to demo the CLI (`gravc`) — that's already covered by the
 integration harness. It's to show what consumers see: add a single
-`<PackageReference>` to `Gravity.Dsl.MsBuild`, drop a `.gravity` file in
-the project, and the build does the rest.
+`<PackageReference Include="Gravity.Dsl.MsBuild" />`, drop a `.gravity` file
+in the project, list the emitters in `.gravity.yaml`, and the build does
+the rest. `Gravity.Dsl.MsBuild` bundles every reference emitter — no
+per-emitter PackageReference is required.
 
 ## Layout
 
@@ -18,11 +22,11 @@ Playground/
 ├── Directory.Packages.props                ← inherits CPM + adds local-feed version pin
 ├── NuGet.config                            ← restricts Gravity.Dsl.* to local-packages/
 ├── scripts/
-│   └── pack.sh                             ← packs Gravity.Dsl.MsBuild into local-packages/
+│   └── pack.sh                             ← packs every Gravity.Dsl.* NuGet into local-packages/
 ├── local-packages/                         ← local NuGet feed (gitignored .nupkg)
 ├── Gravity.Playground.HrDemo/              ← the actual consumer project
 │   ├── Gravity.Playground.HrDemo.csproj    ← <PackageReference Gravity.Dsl.MsBuild />
-│   ├── .gravity.config                     ← C# emitter config (namespace, output subdir)
+│   ├── .gravity.yaml                       ← emitter config (one block per emitter)
 │   └── Hr.gravity                          ← the .gravity source
 └── golden/csharp/hr/                       ← frozen reference output (checked in)
     ├── Employee.cs
@@ -48,13 +52,64 @@ dotnet build Playground.sln
 `dotnet build` will:
 
 1. Restore `Gravity.Dsl.MsBuild` from `local-packages/`.
-2. Auto-import `buildTransitive/Gravity.Dsl.MsBuild.props` + `.targets`.
+2. Auto-import `buildTransitive/Gravity.Dsl.MsBuild.props` + `.targets`,
+   which contributes every bundled emitter DLL to
+   `<GravityDslEmitterAssembly>`.
 3. Run the `GravityDslGenerate` target before `CoreCompile`.
-4. The target reads `Hr.gravity` + `.gravity.config`, invokes the C#
-   emitter, and writes `.cs` files under
-   `obj/Debug/net9.0/Generated/csharp/hr/`.
-5. The target adds those files to `<Compile>` so they're compiled into
-   `bin/Debug/net9.0/Gravity.Playground.HrDemo.dll`.
+4. The target reads `Hr.gravity` + `.gravity.yaml`, invokes every emitter
+   named in the config, and writes:
+   - `obj/Debug/net9.0/Generated/csharp/hr/*.cs` (C# emitter)
+   - `obj/Debug/net9.0/Generated/json-schema/**/*.json` (JSON Schema emitter)
+   - `obj/Debug/net9.0/Generated/postgres-ddl/**/*.sql` (PostgreSQL DDL emitter)
+5. The target adds the `.cs` files to `<Compile>` so they're compiled into
+   `bin/Debug/net9.0/Gravity.Playground.HrDemo.dll`. Non-`.cs` outputs are
+   left on disk for downstream tooling (the `.json` and `.sql` files are
+   not auto-included anywhere — picking them up is the consumer's job).
+
+## Multi-emitter setup
+
+`Gravity.Dsl.MsBuild` bundles the three reference emitters under its
+`tasks/net9.0/` folder; its `buildTransitive/Gravity.Dsl.MsBuild.targets`
+contributes those DLL paths to `<GravityDslEmitterAssembly>` at import
+time. The result: **one `<PackageReference Include="Gravity.Dsl.MsBuild" />`
+unlocks all three emitters**. To activate one, just declare its block in
+`.gravity.yaml`:
+
+```yaml
+emitters:
+  csharp:
+    output: csharp           # MUST stay 'csharp' — the auto-compile glob
+    namespace: AcmeCo.Domain # is hard-coded to `Generated/csharp/**/*.cs`
+    file_scoped_namespaces: true
+  json-schema:
+    output: json-schema
+    bundle_strategy: per-entity
+  postgres-ddl:
+    output: postgres-ddl
+    schema: acme
+```
+
+The block key matches the emitter's `TargetName` (`csharp`,
+`json-schema`, `postgres-ddl`). Each block sets at least `output:` (the
+per-emitter subdirectory under `<GravityDslOutputDir>`). Omit a block to
+skip that emitter. A block naming an unknown emitter surfaces a
+`CFG001 "no registered target; ignoring"` warning.
+
+### Third-party / pinned emitters
+
+The standalone emitter NuGets (`Gravity.Dsl.Emitter.JsonSchema`,
+`Gravity.Dsl.Emitter.PostgresDdl`) still ship independently for two
+use-cases:
+
+- A third party wants to author a new emitter against the public
+  `IEmitter` contract and have `Gravity.Dsl.MsBuild` discover it via
+  `<GravityDslEmitterAssembly>`. The plugin discovery channel is
+  unchanged — see `docs/emitter-authoring-guide.md`.
+- A consumer wants to pin a specific JSON Schema or PostgreSQL DDL
+  emitter version different from the one bundled by their pinned
+  `Gravity.Dsl.MsBuild`. They add an explicit `<PackageReference>`;
+  the buildTransitive props from the external package contributes the
+  same `<GravityDslEmitterAssembly>` item alongside the bundled one.
 
 ## Side-by-side: source ⇄ emitted C#
 
@@ -120,7 +175,7 @@ entity Employee version 1 {
 
 Eight files, one per top-level declaration plus per-entity bundles for
 events and commands. `namespace AcmeCo.Domain.hr;` is the
-`.gravity.config` namespace prefix joined to the `.gravity` file's own
+`.gravity.yaml` namespace prefix joined to the `.gravity` file's own
 `namespace hr;` declaration.
 
 #### Employee.cs — the entity record

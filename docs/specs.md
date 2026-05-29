@@ -203,7 +203,7 @@ The AST interface is versioned independently of the DSL grammar. A grammar can a
 
 ### 5.3 Discovery and invocation
 
-Emitters live in NuGet packages. A `.gravity.config` file in the project root declares which emitters are enabled and how they are configured:
+Emitters live in NuGet packages. A `.gravity.yaml` file in the project root declares which emitters are enabled and how they are configured:
 
 ```yaml
 emitters:

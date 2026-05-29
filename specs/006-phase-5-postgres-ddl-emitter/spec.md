@@ -65,7 +65,7 @@ Levels: **MUST**, **SHOULD**, **MAY**. Each requirement traces to a constitution
   - `EnumDecl` → enum-type renderer (FR-422)
   
   Each emitted file is handed to `IEmitterOutput.WriteFile` with a `/`-normalised relative path under either `schema/` or `migrations/` (LD-22). No file is emitted for `EventDecl` or `CommandDecl` — those are runtime constructs (NG-7).
-- **FR-404 (MUST, VI).** Configuration ingestion uses the existing `Gravity.Dsl.Emitter.ConfigLoader`. The emitter publishes its `EmitterConfigSchema`; the host validates `.gravity.config` before invocation. The emitter projects `EmitterConfig.Values` into an internal typed config record (`PostgresDdlEmitterConfig.From(config, diags)`) mirroring the `JsonSchemaEmitterConfig.From` pattern.
+- **FR-404 (MUST, VI).** Configuration ingestion uses the existing `Gravity.Dsl.Emitter.ConfigLoader`. The emitter publishes its `EmitterConfigSchema`; the host validates `.gravity.yaml` before invocation. The emitter projects `EmitterConfig.Values` into an internal typed config record (`PostgresDdlEmitterConfig.From(config, diags)`) mirroring the `JsonSchemaEmitterConfig.From` pattern.
 - **FR-405 (MUST, VI).** The emitter is `sealed` with a public parameterless constructor — the `EmitterRegistry` discovery contract requires both. Renderer helper types are `internal sealed` to keep the public surface area minimal.
 
 ### 4.2 Schema generation (baseline `schema/` tree)

@@ -398,9 +398,9 @@ Goal: exercise the multi-version surface against the existing `samples/registry/
 - **Files.** `samples/registry/Employee.gravity`, `samples/registry/Project.gravity` (or `samples/registry/v2/*.gravity` if a separate subdirectory is cleaner).
 - **Depends on.** T154.
 
-### T171 [P]. Update `samples/registry/.gravity.config` if needed
-- **Acceptance.** Inspect `samples/registry/.gravity.config` (locked by T003 for the `csharp`-only emitter set). If the v2 samples from T170 require any config delta (e.g. an output sub-directory split per version, or a new namespace mapping), apply the minimum-surface change. If no config change is needed, this task is a no-op verified by re-reading the file and documenting "no delta required" in the closing PR description. The `csharp` emitter remains the only enabled emitter (no Phase 4–7 emitters yet; LD-8).
-- **Files.** `samples/registry/.gravity.config` (touched only if needed).
+### T171 [P]. Update `samples/registry/.gravity.yaml` if needed
+- **Acceptance.** Inspect `samples/registry/.gravity.yaml` (locked by T003 for the `csharp`-only emitter set). If the v2 samples from T170 require any config delta (e.g. an output sub-directory split per version, or a new namespace mapping), apply the minimum-surface change. If no config change is needed, this task is a no-op verified by re-reading the file and documenting "no delta required" in the closing PR description. The `csharp` emitter remains the only enabled emitter (no Phase 4–7 emitters yet; LD-8).
+- **Files.** `samples/registry/.gravity.yaml` (touched only if needed).
 - **Depends on.** T170.
 
 ### T172 [P]. Ensure samples still pass `gravc check` and `gravc gen --emitter csharp`

@@ -36,7 +36,7 @@ emitters:
   schema-stub:
     output: gen/schema
 ";
-        var result = ConfigLoader.LoadFromString(yaml, ".gravity.config", BuildRegistry());
+        var result = ConfigLoader.LoadFromString(yaml, ".gravity.yaml", BuildRegistry());
         result.Diagnostics.Should().Contain(d => d.RuleId == "CFG001" && d.Message.Contains("unknown_top"));
     }
 
@@ -49,7 +49,7 @@ emitters:
     output: gen/schema
     file_scoped_namespaces: not-a-boolean
 ";
-        var result = ConfigLoader.LoadFromString(yaml, ".gravity.config", BuildRegistry());
+        var result = ConfigLoader.LoadFromString(yaml, ".gravity.yaml", BuildRegistry());
         result.Diagnostics.Should().Contain(d => d.RuleId == "CFG002" && d.Message.Contains("file_scoped_namespaces"));
     }
 
@@ -61,7 +61,7 @@ emitters:
   schema-stub:
     namespace: Acme
 ";
-        var result = ConfigLoader.LoadFromString(yaml, ".gravity.config", BuildRegistry());
+        var result = ConfigLoader.LoadFromString(yaml, ".gravity.yaml", BuildRegistry());
         result.Diagnostics.Should().Contain(d => d.RuleId == "CFG003" && d.Message.Contains("output"));
     }
 
@@ -73,7 +73,7 @@ emitters:
   schema-stub:
     output: gen/schema
 ";
-        var result = ConfigLoader.LoadFromString(yaml, ".gravity.config", BuildRegistry());
+        var result = ConfigLoader.LoadFromString(yaml, ".gravity.yaml", BuildRegistry());
         result.Diagnostics.Should().BeEmpty();
         result.Configs.Should().ContainKey("schema-stub");
         var cfg = result.Configs["schema-stub"];
@@ -97,9 +97,9 @@ emitters:
     output: gen/schema
     enabled: false
 ";
-        var enabled = ConfigLoader.LoadFromString(enabledYaml, ".gravity.config", BuildRegistry());
+        var enabled = ConfigLoader.LoadFromString(enabledYaml, ".gravity.yaml", BuildRegistry());
         enabled.Configs["schema-stub"].Enabled.Should().BeTrue();
-        var disabled = ConfigLoader.LoadFromString(disabledYaml, ".gravity.config", BuildRegistry());
+        var disabled = ConfigLoader.LoadFromString(disabledYaml, ".gravity.yaml", BuildRegistry());
         disabled.Configs["schema-stub"].Enabled.Should().BeFalse();
     }
 
@@ -112,7 +112,7 @@ emitters:
     output: gen/schema
     max_files: 5
 ";
-        var result = ConfigLoader.LoadFromString(yaml, ".gravity.config", BuildRegistry());
+        var result = ConfigLoader.LoadFromString(yaml, ".gravity.yaml", BuildRegistry());
         result.Diagnostics.Should().BeEmpty();
         result.Configs["schema-stub"].GetInt("max_files").Should().Be(5);
     }
@@ -126,7 +126,25 @@ emitters:
     output: gen/schema
     bogus_setting: 1
 ";
-        var result = ConfigLoader.LoadFromString(yaml, ".gravity.config", BuildRegistry());
+        var result = ConfigLoader.LoadFromString(yaml, ".gravity.yaml", BuildRegistry());
         result.Diagnostics.Should().Contain(d => d.RuleId == "CFG001" && d.Message.Contains("bogus_setting"));
+    }
+
+    [Fact]
+    public void FindInDirectory_ReturnsPathWhenYamlPresent_NullOtherwise()
+    {
+        var dir = Directory.CreateTempSubdirectory("gravity-cfg-probe-").FullName;
+        try
+        {
+            ConfigLoader.FindInDirectory(dir).Should().BeNull();
+
+            var path = Path.Combine(dir, ConfigLoader.FileName);
+            File.WriteAllText(path, "emitters: {}\n");
+            ConfigLoader.FindInDirectory(dir).Should().Be(path);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
     }
 }

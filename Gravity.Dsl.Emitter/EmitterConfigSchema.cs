@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 namespace Gravity.Dsl.Emitter;
 
 /// <summary>
-/// Scalar kinds the <c>.gravity.config</c> loader knows how to validate.
+/// Scalar kinds the <c>.gravity.yaml</c> loader knows how to validate.
 /// Mirrors the YAML scalar shapes the loader maps onto.
 /// </summary>
 public enum ConfigValueKind
@@ -32,7 +32,7 @@ public sealed record ConfigKey(
     object? Default);
 
 /// <summary>
-/// Declarative schema an emitter publishes so the <c>.gravity.config</c> loader can
+/// Declarative schema an emitter publishes so the <c>.gravity.yaml</c> loader can
 /// validate the user's configuration block before invocation. Keys are stored in
 /// an <see cref="ImmutableArray{T}"/> to preserve declaration order (which has no
 /// semantic meaning to the loader but keeps documentation and error iteration stable).

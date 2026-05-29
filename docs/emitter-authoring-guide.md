@@ -66,10 +66,10 @@ at `Gravity.Dsl.Emitter/IEmitter.cs`.
 
 | Member | Purpose |
 | --- | --- |
-| `string TargetName` | Stable id used by `.gravity.config` to address this emitter, and by diagnostics as the origin path. Example: `"csharp"`. |
+| `string TargetName` | Stable id used by `.gravity.yaml` to address this emitter, and by diagnostics as the origin path. Example: `"csharp"`. |
 | `string AnnotationNamespace` | Annotation namespace this emitter claims, e.g. `"csharp"`. Empty string means "claim nothing". See §5. |
 | `SemanticVersionRange SupportedAstVersions` | AST contract range you compiled against. The host rejects an incompatible emitter with `HOST001`. See §3. |
-| `EmitterConfigSchema ConfigurationSchema` | Declarative schema for your `.gravity.config` block. The host validates user input against this before invoking you. See §10. |
+| `EmitterConfigSchema ConfigurationSchema` | Declarative schema for your `.gravity.yaml` block. The host validates user input against this before invoking you. See §10. |
 | `EmitResult Emit(model, config, sink)` | The only entry point. Write files into `sink`, return diagnostics. |
 
 ### 2.2 Bare-minimum implementation
@@ -895,8 +895,8 @@ your schema:
 
 ### 10.2 YAML shape
 
-The user writes `.gravity.config` at the project root. The C# emitter's
-real-world block (`samples/registry/.gravity.config:1-5`):
+The user writes `.gravity.yaml` at the project root. The C# emitter's
+real-world block (`samples/registry/.gravity.yaml:1-5`):
 
 ```yaml
 emitters:
@@ -969,7 +969,7 @@ rules as the AST:
 
 There is no formal `schema_version` field; the emitter's NuGet version
 is the authority. Consumers pin the emitter NuGet alongside their
-`.gravity.config`.
+`.gravity.yaml`.
 
 ---
 
@@ -1333,7 +1333,7 @@ In a consuming `.csproj`:
 </ItemGroup>
 ```
 
-Add a `.gravity.config` next to the consumer csproj:
+Add a `.gravity.yaml` next to the consumer csproj:
 
 ```yaml
 emitters:
@@ -1469,7 +1469,7 @@ Gravity.Dsl.Emitter.CSharp/       # Reference C# emitter
 Gravity.Dsl.Cli/                  # gravity-dsl CLI (consumes the host)
 Gravity.Dsl.MsBuild/              # MSBuild integration (consumes the host)
 samples/emitters/outline/         # Sample emitter — copy-paste template
-samples/registry/                 # Sample Gravity source + .gravity.config
+samples/registry/                 # Sample Gravity source + .gravity.yaml
 tests/fixtures/                   # Shared .gravity inputs
 tests/golden/                     # Locked emitter output per target
 ```
@@ -1486,7 +1486,7 @@ tests/golden/                     # Locked emitter output per target
 | **Resolved Model** | `Gravity.Dsl.Compiler.Resolution.ResolvedModel`. The post-resolution view of a Gravity program. Sorted, validated, references bound. The only thing emitters consume. |
 | **DeclKey** | `(Fqn, Version)` composite key for the multi-version declaration map. Comparable; ordering is `(Fqn ordinal asc, Version asc)`. |
 | **Annotation namespace** | The vocabulary an emitter owns (`csharp`, `kotlin`, `json-schema`). Annotations are scoped to a namespace; only the owning emitter reads them. |
-| **Target name** | The emitter's stable identifier (`csharp`, `outline`). Used by `.gravity.config` to address the emitter's block. |
+| **Target name** | The emitter's stable identifier (`csharp`, `outline`). Used by `.gravity.yaml` to address the emitter's block. |
 | **Emitter host** | `EmitterHost.Run(...)`. Coordinates pre-flight checks, parallel emitter invocation, diagnostic sorting, and deterministic commit-to-disk. |
 | **Sink** | `IEmitterOutput`. The buffered output an emitter writes through. The host owns the implementation. |
 | **Golden** | A locked-in expected emitter output file under `tests/golden/<target>/`. Byte-compared against fresh emitter output on every CI run. |

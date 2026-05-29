@@ -9,14 +9,18 @@ using YamlDotNet.RepresentationModel;
 namespace Gravity.Dsl.Emitter;
 
 /// <summary>
-/// Parses <c>.gravity.config</c> YAML into one <see cref="EmitterConfig"/> per
+/// Parses the Gravity emitter config YAML into one <see cref="EmitterConfig"/> per
 /// emitter target named in the file. The loader is schema-driven: each emitter
 /// section is validated against the corresponding <see cref="IEmitter.ConfigurationSchema"/>,
 /// producing <c>CFG001</c> for unknown top-level keys, <c>CFG002</c> for type
-/// mismatches, and <c>CFG003</c> for missing required keys.
+/// mismatches, and <c>CFG003</c> for missing required keys. The canonical filename
+/// is <see cref="FileName"/> (<c>.gravity.yaml</c>).
 /// </summary>
 public static class ConfigLoader
 {
+    /// <summary>Canonical config filename. IDEs that key off the extension (e.g. Rider, VS Code) treat <c>.yaml</c> as YAML out of the box.</summary>
+    public const string FileName = ".gravity.yaml";
+
     /// <summary>Result of <see cref="LoadFromString"/> / <see cref="LoadFile"/>.</summary>
     public sealed record LoadResult(
         ImmutableSortedDictionary<string, EmitterConfig> Configs,
@@ -24,6 +28,17 @@ public static class ConfigLoader
 
     private static readonly HashSet<string> KnownTopLevelKeys =
         new(StringComparer.Ordinal) { "emitters" };
+
+    /// <summary>
+    /// Probe <paramref name="directory"/> for a <c>.gravity.yaml</c> config file.
+    /// Returns the absolute path if it exists; <c>null</c> otherwise.
+    /// </summary>
+    public static string? FindInDirectory(string directory)
+    {
+        if (directory is null) throw new ArgumentNullException(nameof(directory));
+        var path = Path.Combine(directory, FileName);
+        return File.Exists(path) ? path : null;
+    }
 
     /// <summary>Convenience overload that reads <paramref name="path"/> from disk.</summary>
     public static LoadResult LoadFile(string path, EmitterRegistry registry)
@@ -55,7 +70,7 @@ public static class ConfigLoader
             diagnostics.Add(new Diagnostic(
                 DiagnosticSeverity.Error,
                 RuleIds.Cfg002,
-                "could not parse .gravity.config YAML: " + ex.Message,
+                "could not parse .gravity.yaml: " + ex.Message,
                 new SourceSpan(sourcePath, 1, 1, 0)));
             return new LoadResult(configs.ToImmutable(), diagnostics.ToImmutable());
         }
@@ -70,7 +85,7 @@ public static class ConfigLoader
             diagnostics.Add(new Diagnostic(
                 DiagnosticSeverity.Error,
                 RuleIds.Cfg002,
-                ".gravity.config root must be a YAML mapping",
+                ".gravity.yaml root must be a YAML mapping",
                 SpanOf(root, sourcePath)));
             return new LoadResult(configs.ToImmutable(), diagnostics.ToImmutable());
         }
@@ -98,7 +113,7 @@ public static class ConfigLoader
                 diagnostics.Add(new Diagnostic(
                     DiagnosticSeverity.Warning,
                     RuleIds.Cfg001,
-                    "unknown top-level key '" + keyText + "' in .gravity.config",
+                    "unknown top-level key '" + keyText + "' in .gravity.yaml",
                     SpanOf(keyNode, sourcePath)));
             }
         }
