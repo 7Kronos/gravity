@@ -10,7 +10,12 @@
   <Import Project="..\Directory.Packages.props" />
 
   <ItemGroup>
-    <PackageVersion Include="Gravity.Dsl.MsBuild" Version="0.1.0-playground" />
+    <PackageVersion Include="Gravity.Dsl.Ast" Version="0.2.0-playground" />
+    <PackageVersion Include="Gravity.Dsl.Compiler" Version="0.2.0-playground" />
+    <PackageVersion Include="Gravity.Dsl.Emitter" Version="0.2.0-playground" />
+    <PackageVersion Include="Gravity.Dsl.MsBuild" Version="0.2.0-playground" />
+    <PackageVersion Include="Gravity.Dsl.Emitter.JsonSchema" Version="0.2.0-playground" />
+    <PackageVersion Include="Gravity.Dsl.Emitter.PostgresDdl" Version="0.2.0-playground" />
   </ItemGroup>
 
 </Project>

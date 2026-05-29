@@ -1,13 +1,29 @@
-# Gravity DSL emitter configuration consumed by the C# emitter at build time.
+# Gravity DSL emitter configuration consumed at build time.
 #
-# - `output` is the per-emitter subdirectory under <GravityDslOutputDir>
-#   (the default is `obj/<config>/<tfm>/Generated/`). The MSBuild target's
-#   <Compile> glob looks for *.cs under `<GravityDslOutputDir>/csharp/**`,
-#   so the value must be `csharp` for the auto-compile hook to pick the files up.
-# - `namespace` is prepended to each entity file's `namespace <ns>;` declaration:
-#   a Hr.gravity that declares `namespace hr;` emits `namespace AcmeCo.Domain.hr;`.
+# `output` is the per-emitter subdirectory under <GravityDslOutputDir>
+# (the playground pins this to `obj/<config>/<tfm>/Generated/`).
+#
+# IMPORTANT: the C# emitter's output must stay `csharp` because the
+# MSBuild target's auto-compile glob hard-codes `<GravityDslOutputDir>/csharp/**/*.cs`
+# when adding generated files to <Compile>. Renaming the csharp output here
+# would write `.cs` files into the right place on disk but they would not
+# participate in compilation. The other emitters (json-schema, postgres-ddl)
+# emit non-C# artifacts, so their `output:` value is free-form.
+#
+# `namespace` (csharp only) is prepended to each entity file's `namespace <ns>;`
+# declaration: a Hr.gravity that declares `namespace hr;` emits
+# `namespace AcmeCo.Domain.hr;`.
+#
+# `schema` (postgres-ddl) is the target PostgreSQL schema name; defaults to
+# `public` when omitted.
 emitters:
   csharp:
     output: csharp
     namespace: AcmeCo.Domain
     file_scoped_namespaces: true
+  json-schema:
+    output: json-schema
+    bundle_strategy: per-entity
+  postgres-ddl:
+    output: postgres-ddl
+    schema: acme

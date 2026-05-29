@@ -280,15 +280,24 @@ public static class CompilerPipeline
         var result = new List<IEmitter>();
         var sorted = assemblyPaths.ToArray();
         Array.Sort(sorted, StringComparer.Ordinal);
+
+        // Load every emitter assembly into the SAME AssemblyLoadContext that
+        // hosts Gravity.Dsl.Emitter (where IEmitter lives). Under the standalone
+        // CLI this is the Default ALC; under MSBuild the task is loaded into a
+        // private "MSBuild plugin" ALC, and Assembly.LoadFrom would otherwise
+        // route the emitter into the Default ALC — causing the type-identity
+        // mismatch that silently drops every plugin emitter with a CFG001
+        // "no registered target" warning at runtime.
+        var hostAlc = System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(typeof(IEmitter).Assembly)
+            ?? System.Runtime.Loader.AssemblyLoadContext.Default;
+
         foreach (var path in sorted)
         {
             if (string.IsNullOrEmpty(path) || !File.Exists(path)) continue;
             System.Reflection.Assembly asm;
             try
             {
-                // Use the default load context so the emitter shares Gravity.Dsl.Emitter
-                // type identity with this assembly (no IEmitter type-identity mismatch).
-                asm = System.Reflection.Assembly.LoadFrom(path);
+                asm = hostAlc.LoadFromAssemblyPath(Path.GetFullPath(path));
             }
             catch (Exception)
             {

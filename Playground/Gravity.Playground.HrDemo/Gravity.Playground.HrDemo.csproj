@@ -46,9 +46,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Version is centrally managed in Playground/Directory.Packages.props
-         and produced by Playground/scripts/pack.sh. Bump them together. -->
+    <!-- Versions are centrally managed in Playground/Directory.Packages.props
+         and produced by Playground/scripts/pack.sh. Bump them together.
+         Each emitter is a separate NuGet that auto-contributes its DLL to
+         <GravityDslEmitterAssembly> via its buildTransitive/*.props on import. -->
     <PackageReference Include="Gravity.Dsl.MsBuild" />
+    <PackageReference Include="Gravity.Dsl.Emitter.JsonSchema" />
+    <PackageReference Include="Gravity.Dsl.Emitter.PostgresDdl" />
   </ItemGroup>
 
 </Project>
