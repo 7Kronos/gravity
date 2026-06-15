@@ -197,13 +197,15 @@ public sealed class PluginFlagTests
         }
     }
 
-    // (6) Check path: extraEmitterAssemblies threads through Check so the
-    //     validator's VAL006 namespace-claim check sees plugin-claimed
-    //     namespaces. Without the plugin, an outline-annotated entity would
-    //     trip VAL006; with --plugin pointing at the Outline DLL, it does not.
-    //     This is the build-integration parity requirement (LD-11).
+    // (6) Check path: extraEmitterAssemblies parameter is accepted and the
+    //     plugin assembly loads cleanly. This is the wiring that lets
+    //     Check's VAL006 namespace-claim check see plugin-claimed namespaces
+    //     so the validator's view matches Gen's — the build-integration
+    //     parity requirement (LD-11). A test that actually exercises VAL006
+    //     with an annotated fixture would need a separate fixture; this
+    //     test only locks the parameter wiring.
     [Fact]
-    public async Task Check_WithExtraEmitterAssembly_SeesPluginAnnotationNamespace()
+    public async Task Check_AcceptsExtraEmitterAssembly_AndLoadsCleanly()
     {
         var input = FixtureRoot();
         var resultWithPlugin = await CompilerPipeline.Check(
@@ -212,10 +214,6 @@ public sealed class PluginFlagTests
             emitterFilter: null,
             extraEmitterAssemblies: new[] { OutlinePluginPath() });
         resultWithPlugin.Success.Should().BeTrue();
-        // The registry must include the outline emitter, which means an
-        // outline-annotated declaration in source would no longer trip VAL006.
-        // The fixture's Person.gravity carries no annotations; the assertion
-        // here is that the run completes cleanly when the plugin is present.
         resultWithPlugin.Diagnostics.Should().NotContain(d => d.RuleId == "HOST001");
     }
 }

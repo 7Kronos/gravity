@@ -85,7 +85,6 @@ internal static class Program
         var expanded = new List<string>();
         foreach (var raw in plugins)
         {
-            if (string.IsNullOrEmpty(raw)) continue;
             if (Directory.Exists(raw))
             {
                 var dlls = Directory.GetFiles(raw, "*.dll", SearchOption.TopDirectoryOnly);

@@ -257,11 +257,11 @@ Two parallel paths exist, both producing the same registry shape:
 - **The CLI + MSBuild path** (production) goes through
   `CompilerPipeline.LoadExtraEmitters` (`CompilerPipeline.cs:283-321`),
   which loads each `*.dll` into the **same** `AssemblyLoadContext` that
-  hosts `Gravity.Dsl.Emitter` (i.e. the host's ALC). This is the
-  build-integration parity contract: loading into the host ALC keeps
-  the `IEmitter` type identity stable across the boundary, which is the
-  fix landed in commit 2d8eb51. Both `gravc --plugin <path>` and
-  MSBuild's `<GravityDslEmitterAssembly>` items thread through here.
+  hosts `Gravity.Dsl.Emitter` (the host's ALC). Loading into the host
+  ALC keeps `IEmitter` type identity stable across the boundary —
+  without that, plugin emitters silently drop out as "no registered
+  target" warnings. Both `gravc --plugin <path>` and MSBuild's
+  `<GravityDslEmitterAssembly>` items thread through here.
 
 - **`EmitterRegistry.Discover(pluginDirectory)`**
   (`EmitterRegistry.cs:67-94`) is the public directory-scan API. It
