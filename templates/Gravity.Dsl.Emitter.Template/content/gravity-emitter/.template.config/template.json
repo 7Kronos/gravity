@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Gravity DSL",
+  "classifications": [ "Gravity", "Emitter", "Plugin" ],
+  "identity": "Gravity.Dsl.Emitter.Template",
+  "name": "Gravity DSL Emitter",
+  "shortName": "gravity-emitter",
+  "description": "Scaffolds a Gravity DSL emitter NuGet package — IEmitter implementation, deterministic build properties, and the buildTransitive .props that auto-registers the assembly with Gravity.Dsl.MsBuild on consumers.",
+  "sourceName": "MyEmitter",
+  "preferNameDirectory": true,
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "symbols": {
+    "TargetName": {
+      "type": "parameter",
+      "datatype": "text",
+      "description": "Stable identifier used by .gravity.yaml to address this emitter (e.g. 'kotlin'). Must be a valid identifier — no whitespace, no hyphens that conflict with the YAML key syntax. Convention: keep TargetName and AnnotationNamespace aligned.",
+      "defaultValue": "my-emitter",
+      "replaces": "target-name-placeholder"
+    },
+    "AnnotationNamespace": {
+      "type": "parameter",
+      "datatype": "text",
+      "description": "Annotation namespace this emitter claims. Empty string opts out. Two emitters claiming the same non-empty namespace produce HOST002 at registry build time.",
+      "defaultValue": "my-emitter",
+      "replaces": "annotation-ns-placeholder"
+    },
+    "GravityAstVersion": {
+      "type": "parameter",
+      "datatype": "text",
+      "description": "Version range of the Gravity AST contract this emitter supports. Convention: target one major (e.g. '>=1.0.0 <2.0.0'). Bump only when the AST you depend on moves to a new major.",
+      "defaultValue": ">=1.0.0 <2.0.0",
+      "replaces": "ast-version-range-placeholder"
+    },
+    "GravityPackageVersion": {
+      "type": "parameter",
+      "datatype": "text",
+      "description": "NuGet package version of Gravity.Dsl.Ast and Gravity.Dsl.Emitter to depend on. Default tracks the latest published pre-release on nuget.org. Bump to the stable 0.x or 1.x release once it ships.",
+      "defaultValue": "0.1.0-alpha4",
+      "replaces": "gravity-package-version-placeholder"
+    }
+  }
+}

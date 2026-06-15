@@ -31,6 +31,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gravity.Dsl.IntegrationHarn
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gravity.Dsl.Emitter.PostgresDdl", "Gravity.Dsl.Emitter.PostgresDdl\Gravity.Dsl.Emitter.PostgresDdl.csproj", "{8C2D3941-8960-40EE-8633-9A07443375F2}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "templates", "templates", "{808186BE-9BD0-DD1D-D574-36EEAD1E7F8F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gravity.Dsl.Emitter.Template", "templates\Gravity.Dsl.Emitter.Template\Gravity.Dsl.Emitter.Template.csproj", "{E9C3D3D2-A84D-4690-B18E-6E937A1B6D9D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -173,6 +177,18 @@ Global
 		{8C2D3941-8960-40EE-8633-9A07443375F2}.Release|x64.Build.0 = Release|Any CPU
 		{8C2D3941-8960-40EE-8633-9A07443375F2}.Release|x86.ActiveCfg = Release|Any CPU
 		{8C2D3941-8960-40EE-8633-9A07443375F2}.Release|x86.Build.0 = Release|Any CPU
+		{E9C3D3D2-A84D-4690-B18E-6E937A1B6D9D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9C3D3D2-A84D-4690-B18E-6E937A1B6D9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9C3D3D2-A84D-4690-B18E-6E937A1B6D9D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E9C3D3D2-A84D-4690-B18E-6E937A1B6D9D}.Debug|x64.Build.0 = Debug|Any CPU
+		{E9C3D3D2-A84D-4690-B18E-6E937A1B6D9D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E9C3D3D2-A84D-4690-B18E-6E937A1B6D9D}.Debug|x86.Build.0 = Debug|Any CPU
+		{E9C3D3D2-A84D-4690-B18E-6E937A1B6D9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9C3D3D2-A84D-4690-B18E-6E937A1B6D9D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E9C3D3D2-A84D-4690-B18E-6E937A1B6D9D}.Release|x64.ActiveCfg = Release|Any CPU
+		{E9C3D3D2-A84D-4690-B18E-6E937A1B6D9D}.Release|x64.Build.0 = Release|Any CPU
+		{E9C3D3D2-A84D-4690-B18E-6E937A1B6D9D}.Release|x86.ActiveCfg = Release|Any CPU
+		{E9C3D3D2-A84D-4690-B18E-6E937A1B6D9D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -181,5 +197,6 @@ Global
 		{670623D1-0355-3278-526B-7F2ADEB4BE44} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 		{FB800E6B-D390-45C0-CB2D-FCEC5435BA3E} = {670623D1-0355-3278-526B-7F2ADEB4BE44}
 		{65D66072-744D-418F-8361-A13C28BBEED1} = {FB800E6B-D390-45C0-CB2D-FCEC5435BA3E}
+		{E9C3D3D2-A84D-4690-B18E-6E937A1B6D9D} = {808186BE-9BD0-DD1D-D574-36EEAD1E7F8F}
 	EndGlobalSection
 EndGlobal

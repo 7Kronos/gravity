@@ -31,10 +31,17 @@ public static class CompilerPipeline
     /// Phase 8 deprecation-window evaluation (FR-140). The CLI threads
     /// <c>--as-of</c> here; tests pass a deterministic value.</param>
     /// <param name="emitterFilter">Optional emitter whitelist; ignored by <c>check</c>.</param>
+    /// <param name="extraEmitterAssemblies">Optional absolute paths to additional emitter
+    /// assemblies. Each is loaded into the host's <see cref="System.Runtime.Loader.AssemblyLoadContext"/>
+    /// and any public concrete <see cref="IEmitter"/> implementations are registered alongside the
+    /// built-in reference emitters. Threaded by <c>gravc --plugin</c> so the validator's
+    /// <c>VAL006</c> annotation-namespace check sees the same claimed namespaces the gen
+    /// step would (build-integration parity, LD-11).</param>
     public static async Task<PipelineResult> Check(
         string inputRoot,
         DateOnly currentDate,
-        IReadOnlyList<string>? emitterFilter = null)
+        IReadOnlyList<string>? emitterFilter = null,
+        IReadOnlyList<string>? extraEmitterAssemblies = null)
     {
         if (inputRoot is null) throw new ArgumentNullException(nameof(inputRoot));
 
@@ -55,7 +62,7 @@ public static class CompilerPipeline
 
         // The registry is built up-front so the claimed annotation namespaces are
         // available to the validator regardless of whether the user emitted code.
-        var registry = BuildRegistry();
+        var registry = BuildRegistry(extraEmitterAssemblies);
         diags.AddRange(registry.Diagnostics);
 
         var validatorDiags = Validator.Validate(resolved.Model, registry.ClaimedAnnotationNamespaces(), currentDate);
@@ -71,11 +78,16 @@ public static class CompilerPipeline
     /// <param name="currentDate">Date passed to <see cref="Validator.Validate"/> for
     /// Phase 8 deprecation-window evaluation (FR-140).</param>
     /// <param name="emitterFilter">Optional emitter whitelist.</param>
+    /// <param name="extraEmitterAssemblies">Optional absolute paths to additional emitter
+    /// assemblies. Each is loaded into the host's <see cref="System.Runtime.Loader.AssemblyLoadContext"/>
+    /// and any public concrete <see cref="IEmitter"/> implementations are registered alongside the
+    /// built-in reference set (FR-224). Threaded by <c>gravc --plugin</c>.</param>
     public static async Task<PipelineResult> Gen(
         string inputRoot,
         string outputRoot,
         DateOnly currentDate,
-        IReadOnlyList<string>? emitterFilter = null)
+        IReadOnlyList<string>? emitterFilter = null,
+        IReadOnlyList<string>? extraEmitterAssemblies = null)
     {
         if (inputRoot is null) throw new ArgumentNullException(nameof(inputRoot));
         if (outputRoot is null) throw new ArgumentNullException(nameof(outputRoot));
@@ -95,7 +107,7 @@ public static class CompilerPipeline
             return new PipelineResult(false, diags.ToImmutable());
         }
 
-        var registry = BuildRegistry();
+        var registry = BuildRegistry(extraEmitterAssemblies);
         diags.AddRange(registry.Diagnostics);
 
         var validatorDiags = Validator.Validate(resolved.Model, registry.ClaimedAnnotationNamespaces(), currentDate);

@@ -28,4 +28,12 @@ public static class CliRuleIds
     /// passed together. Exits with code 2 (CLI usage error).
     /// </summary>
     public const string Cli003 = "CLI003";
+
+    /// <summary>
+    /// <c>--plugin</c> path does not resolve to an existing file or directory.
+    /// Surfaced before the registry is built so the failure mode matches the
+    /// MSBuild task's behaviour when a <c>&lt;GravityDslEmitterAssembly&gt;</c>
+    /// item points at a missing path. Exits with code 2 (CLI usage error).
+    /// </summary>
+    public const string Cli004 = "CLI004";
 }

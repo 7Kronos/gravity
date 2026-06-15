@@ -252,13 +252,26 @@ on 1.1.0. Set the range floor accordingly.
 
 ### 4.1 How the host finds you
 
-The CLI calls `EmitterRegistry.Discover(pluginDirectory)`
-(`EmitterRegistry.cs:67-94`). It scans the directory for `*.dll`, loads
-each into an isolated `AssemblyLoadContext`, walks public types
-implementing `IEmitter` with a public parameterless ctor, and
-instantiates them.
+Two parallel paths exist, both producing the same registry shape:
 
-Behaviour worth knowing:
+- **The CLI + MSBuild path** (production) goes through
+  `CompilerPipeline.LoadExtraEmitters` (`CompilerPipeline.cs:283-321`),
+  which loads each `*.dll` into the **same** `AssemblyLoadContext` that
+  hosts `Gravity.Dsl.Emitter` (the host's ALC). Loading into the host
+  ALC keeps `IEmitter` type identity stable across the boundary —
+  without that, plugin emitters silently drop out as "no registered
+  target" warnings. Both `gravc --plugin <path>` and MSBuild's
+  `<GravityDslEmitterAssembly>` items thread through here.
+
+- **`EmitterRegistry.Discover(pluginDirectory)`**
+  (`EmitterRegistry.cs:67-94`) is the public directory-scan API. It
+  loads each DLL into an **isolated** `AssemblyLoadContext`. Useful for
+  out-of-band tooling that wants a separate ALC per plugin (sandboxed
+  inspection, build-and-discard scenarios). The CLI does not use it
+  today; if you build a custom host on top of `Gravity.Dsl.Emitter`,
+  this is your entry point.
+
+Behaviour shared by both paths:
 
 - DLLs that fail to load are silently skipped — not every DLL in a
   plugin directory is meant to be an emitter (transitive dependencies
@@ -277,9 +290,21 @@ same compatibility and ownership checks run.
 
 There are two surfaces a real emitter has to support:
 
-**The CLI plugin directory.** Drop
-`Your.Emitter.dll` into the directory the CLI's `--plugins` flag points
-at. That is the path that `Discover` scans.
+**The CLI `--plugin` flag.** Drop `Your.Emitter.dll` anywhere on disk and
+point the CLI at it:
+
+```bash
+gravc gen --input src --output gen --plugin path/to/Your.Emitter.dll
+```
+
+The flag is repeatable, and each value can be either a file path or a
+directory. A directory is scanned for `*.dll` at the top level — useful
+when you ship a plugin folder rather than individual assemblies. Loading
+goes through the host's `AssemblyLoadContext` (`CompilerPipeline.cs:283-298`)
+so type identity matches the in-process `IEmitter`. A path that does not
+resolve produces `CLI004` and a non-zero exit before the registry is
+built, so the failure mode matches the MSBuild task's behaviour when a
+`<GravityDslEmitterAssembly>` item points at a missing file.
 
 **The MSBuild integration.** This is the Phase 9 cross-package wiring.
 Your NuGet package must:
@@ -1120,6 +1145,15 @@ Useful as a smoke target and as a step-by-step reference for new
 authors.
 
 Estimated reader time: 15 minutes.
+
+> **Shortcut.** If you just want the scaffolding, install the
+> `Gravity.Dsl.Emitter.Template` package and run
+> `dotnet new gravity-emitter --name MyEmitter --TargetName my-target
+> --AnnotationNamespace my-target`. That produces the same project shape
+> as the steps below — `IEmitter` skeleton, deterministic csproj
+> properties, and the `buildTransitive/<PackageId>.props` wiring — in a
+> single command. The walkthrough is still the right read if you want
+> to understand what each piece is doing before you change it.
 
 ### Step 1 — Project layout
 
