@@ -1,0 +1,22 @@
+<Project>
+
+  <!--
+    Cross-package emitter wiring (FR-224). NuGet imports this .props file at
+    the top of the consuming .csproj because its basename matches the package
+    id. The file contributes this emitter's assembly path to
+    <GravityDslEmitterAssembly>; Gravity.Dsl.MsBuild's GravityDslGenerate
+    target then passes those items to GravityDslGenTask, which loads each DLL
+    and registers its IEmitter implementations alongside the built-in C#
+    reference emitter.
+
+    The path is resolved against this file's own directory
+    ($(MSBuildThisFileDirectory)) so the package layout
+    (buildTransitive/<PackageId>.props + lib/net9.0/<AssemblyName>.dll) is the
+    single source of truth.
+  -->
+
+  <ItemGroup>
+    <GravityDslEmitterAssembly Include="$(MSBuildThisFileDirectory)..\lib\net9.0\MyEmitter.dll" />
+  </ItemGroup>
+
+</Project>
