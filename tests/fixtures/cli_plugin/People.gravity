@@ -1,0 +1,8 @@
+namespace people;
+
+entity Person version 1 {
+  identity id: UUID;
+  properties {
+    name: String;
+  }
+}

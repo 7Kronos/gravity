@@ -48,7 +48,8 @@ internal static class Program
         var parsed = ParseArgs(args, allowOutput: false);
         if (parsed is null) return 1;
         if (!TryResolveAsOf(parsed.AsOfRaw, out var asOf)) return 1;
-        var result = await CompilerPipeline.Check(parsed.Input, asOf, parsed.Emitters).ConfigureAwait(false);
+        if (!TryExpandPlugins(parsed.Plugins, out var pluginAssemblies)) return 1;
+        var result = await CompilerPipeline.Check(parsed.Input, asOf, parsed.Emitters, pluginAssemblies).ConfigureAwait(false);
         PrintDiagnostics(result.Diagnostics);
         return result.Success ? 0 : 1;
     }
@@ -63,9 +64,47 @@ internal static class Program
             return 1;
         }
         if (!TryResolveAsOf(parsed.AsOfRaw, out var asOf)) return 1;
-        var result = await CompilerPipeline.Gen(parsed.Input, parsed.Output!, asOf, parsed.Emitters).ConfigureAwait(false);
+        if (!TryExpandPlugins(parsed.Plugins, out var pluginAssemblies)) return 1;
+        var result = await CompilerPipeline.Gen(parsed.Input, parsed.Output!, asOf, parsed.Emitters, pluginAssemblies).ConfigureAwait(false);
         PrintDiagnostics(result.Diagnostics);
         return result.Success ? 0 : 1;
+    }
+
+    /// <summary>
+    /// Expand each <c>--plugin</c> value to a concrete list of emitter assembly paths.
+    /// A value that points at a directory is scanned for <c>*.dll</c> ordinally; a value
+    /// that points at a file is taken verbatim. Missing paths are reported as <c>CLI003</c>
+    /// and abort the run before the registry is built — surfacing the error early keeps
+    /// the CLI's behaviour symmetric with the MSBuild task, which fails fast if a
+    /// <c>&lt;GravityDslEmitterAssembly&gt;</c> item path does not resolve on disk.
+    /// </summary>
+    private static bool TryExpandPlugins(List<string> plugins, out List<string>? assemblies)
+    {
+        assemblies = null;
+        if (plugins.Count == 0) return true;
+        var expanded = new List<string>();
+        foreach (var raw in plugins)
+        {
+            if (string.IsNullOrEmpty(raw)) continue;
+            if (Directory.Exists(raw))
+            {
+                var dlls = Directory.GetFiles(raw, "*.dll", SearchOption.TopDirectoryOnly);
+                Array.Sort(dlls, StringComparer.Ordinal);
+                expanded.AddRange(dlls);
+            }
+            else if (File.Exists(raw))
+            {
+                expanded.Add(raw);
+            }
+            else
+            {
+                Console.Error.WriteLine(
+                    "gravc " + CliRuleIds.Cli004 + ": --plugin path does not exist: " + raw);
+                return false;
+            }
+        }
+        assemblies = expanded;
+        return true;
     }
 
     /// <summary>
@@ -108,6 +147,7 @@ internal static class Program
         string? output = null;
         string? asOfRaw = null;
         var emitters = new List<string>();
+        var plugins = new List<string>();
         for (int i = 1; i < args.Length; i++)
         {
             switch (args[i])
@@ -125,6 +165,10 @@ internal static class Program
                     if (++i >= args.Length) { Console.Error.WriteLine("gravc: --emitter requires a value"); return null; }
                     emitters.Add(args[i]);
                     break;
+                case "--plugin":
+                    if (++i >= args.Length) { Console.Error.WriteLine("gravc: --plugin requires a value"); return null; }
+                    plugins.Add(args[i]);
+                    break;
                 case "--as-of":
                     if (++i >= args.Length) { Console.Error.WriteLine("gravc: --as-of requires a value"); return null; }
                     asOfRaw = args[i];
@@ -139,7 +183,7 @@ internal static class Program
             Console.Error.WriteLine("gravc: --input <dir> is required");
             return null;
         }
-        return new ParsedArgs(input, output, emitters, asOfRaw);
+        return new ParsedArgs(input, output, emitters, plugins, asOfRaw);
     }
 
     private static int UsageExit(int code, string? message = null)
@@ -152,9 +196,12 @@ internal static class Program
     private static void PrintUsage()
     {
         Console.Error.WriteLine("usage: gravc <command> [options]");
-        Console.Error.WriteLine("  gravc check --input <dir> [--as-of YYYY-MM-DD]");
-        Console.Error.WriteLine("  gravc gen --input <dir> --output <dir> [--emitter <name>]* [--as-of YYYY-MM-DD]");
+        Console.Error.WriteLine("  gravc check --input <dir> [--plugin <path>]* [--as-of YYYY-MM-DD]");
+        Console.Error.WriteLine("  gravc gen --input <dir> --output <dir> [--emitter <name>]* [--plugin <path>]* [--as-of YYYY-MM-DD]");
+        Console.Error.WriteLine();
+        Console.Error.WriteLine("  --plugin <path>  Additional emitter assembly (DLL) or directory containing");
+        Console.Error.WriteLine("                   *.dll emitter assemblies. May be repeated.");
     }
 
-    private sealed record ParsedArgs(string Input, string? Output, List<string> Emitters, string? AsOfRaw);
+    private sealed record ParsedArgs(string Input, string? Output, List<string> Emitters, List<string> Plugins, string? AsOfRaw);
 }
