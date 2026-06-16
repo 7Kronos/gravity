@@ -1,0 +1,71 @@
+namespace catalog;
+
+enum Availability {
+    InStock,
+    Backorder,
+    Discontinued
+}
+
+type PublishResult {
+    ok: Boolean;
+    message: String?;
+}
+
+type RetireResult {
+    ok: Boolean;
+    message: String?;
+}
+
+entity Supplier version 1 {
+    identity id: UUID;
+
+    properties {
+        name: String;
+    }
+}
+
+@csharp(summary: "Catalog product aggregate")
+entity Product version 1 {
+    identity id: UUID;
+
+    relations {
+        @csharp(comment: "Foreign key to the supplying vendor")
+        supplier: Supplier cardinality one;
+    }
+
+    properties {
+        sku: String @csharp(maxLength: 32, summary: "Stock keeping unit");
+        name: String @csharp.display(label: "Display name");
+        availability: Availability;
+        notes: String?;
+    }
+
+    lifecycle {
+        states {
+            Draft, Published, Retired;
+        }
+        transitions {
+            Draft -> Published on Published;
+            Published -> Retired on Retired;
+        }
+    }
+
+    events {
+        Published {
+            published_at: DateTime;
+        };
+        Retired {
+            retired_at: DateTime;
+            reason: String;
+        };
+    }
+
+    commands {
+        Publish()
+            returns PublishResult
+            with side_effect Published;
+        Retire(reason: String)
+            returns RetireResult
+            with side_effect Retired;
+    }
+}

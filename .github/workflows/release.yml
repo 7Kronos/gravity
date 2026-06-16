@@ -8,6 +8,12 @@ on:
 permissions:
   contents: write   # for attaching nupkgs to the GitHub release
 
+# Serialise release runs per tag so re-pushed/retried tags don't race on
+# attaching the same release assets.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   DOTNET_CLI_TELEMETRY_OPTOUT: "1"
   DOTNET_NOLOGO: "1"
@@ -135,3 +141,153 @@ jobs:
             --api-key "$NUGET_API_KEY" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
+
+  # ---------------------------------------------------------------------------
+  # Self-contained, single-file `gravc` binaries, attached to the GitHub Release
+  # for the tag. Independent of the NuGet job (no shared environment / secret) so
+  # the binaries publish even if the NuGet push is gated or fails.
+  #
+  # These are standalone executables: they bundle the .NET runtime, so a user
+  # needs no .NET SDK/runtime installed. The full reference toolchain ships,
+  # including the C# emitter (which formats with Roslyn) and `--plugin` support
+  # for external emitter assemblies. The `dotnet tool install -g gravc`
+  # distribution from the job above remains the option for users who already
+  # have the .NET SDK and prefer a smaller download.
+  # ---------------------------------------------------------------------------
+  standalone-binaries:
+    name: standalone ${{ matrix.rid }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    permissions:
+      contents: write   # softprops/action-gh-release attaches assets to the release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            archive: targz
+          - os: ubuntu-24.04-arm
+            rid: linux-arm64
+            archive: targz
+          - os: windows-latest
+            rid: win-x64
+            archive: zip
+          - os: macos-13
+            rid: osx-x64
+            archive: targz
+          - os: macos-14
+            rid: osx-arm64
+            archive: targz
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET (pinned via global.json)
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Derive version from tag
+        id: ver
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          if [ -z "$VERSION" ]; then
+            echo "ERROR: empty version derived from tag '$TAG'" >&2
+            exit 1
+          fi
+          # Constrain to version-shaped characters so the value is safe to
+          # interpolate downstream (defence-in-depth against CI injection).
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9A-Za-z.+-]+$'; then
+            echo "ERROR: version '$VERSION' contains unexpected characters" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Restore (CLI, RID-specific)
+        run: dotnet restore Gravity.Dsl.Cli/Gravity.Dsl.Cli.csproj -r ${{ matrix.rid }}
+
+      # Self-contained single-file publish: bundles the runtime + native libs
+      # into one executable, with the payload compressed to keep the download
+      # small. InvariantGlobalization matches the CLI's runtime
+      # CultureInfo.InvariantCulture pinning. ReadyToRun is intentionally NOT
+      # enabled: with single-file compression the host self-extracts on first
+      # run, so R2R's cold-start win is largely negated while it inflates the
+      # download — we optimise for a small artifact instead.
+      # matrix.rid is an author-controlled constant, so ${{ }} interpolation here
+      # is safe and works across bash (Linux/macOS) and pwsh (Windows) shells.
+      - name: Publish (self-contained, single-file)
+        run: >
+          dotnet publish Gravity.Dsl.Cli/Gravity.Dsl.Cli.csproj
+          --configuration Release
+          --runtime ${{ matrix.rid }}
+          --self-contained true
+          --no-restore
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -p:InvariantGlobalization=true
+          -p:DebugType=none
+          -p:Version=${{ steps.ver.outputs.version }}
+          --output ./publish/${{ matrix.rid }}
+
+      # Values flow in through env (not inline ${{ }}) so the tag-derived version
+      # is never re-evaluated by the shell. Archives store BARE member names and
+      # checksums use the bare asset name, so the documented `tar -xzf … gravc`
+      # and `sha256sum -c <asset>.sha256` steps work in a user's download dir.
+      - name: Stage, archive, and checksum
+        id: pkg
+        shell: bash
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+          RID: ${{ matrix.rid }}
+          ARCHIVE: ${{ matrix.archive }}
+          RUNNER_OS: ${{ runner.os }}
+        run: |
+          set -euo pipefail
+          STAGE="gravc-${VERSION}-${RID}"
+          DIST="${PWD}/dist"
+          mkdir -p "${DIST}" "${STAGE}"
+
+          if [ "${RUNNER_OS}" = "Windows" ]; then BIN="gravc.exe"; else BIN="gravc"; fi
+          cp "publish/${RID}/${BIN}" "${STAGE}/"
+          [ -f LICENSE ] && cp LICENSE "${STAGE}/"
+          # Bundle the CLI usage doc as the archive's README.
+          [ -f skills/gravc-cli/SKILL.md ] && cp skills/gravc-cli/SKILL.md "${STAGE}/README.md"
+
+          if [ "${ARCHIVE}" = "zip" ]; then
+            NAME="${STAGE}.zip"
+            # 7z is preinstalled on GitHub-hosted Windows runners. Archive from
+            # inside the stage dir so members are stored without a leading path.
+            ( cd "${STAGE}" && 7z a -tzip "${DIST}/${NAME}" -- * >/dev/null )
+          else
+            NAME="${STAGE}.tar.gz"
+            ( cd "${STAGE}" && tar -czf "${DIST}/${NAME}" -- * )
+          fi
+
+          # Checksum by bare name from inside dist/ so the .sha256 references the
+          # asset exactly as published (no path prefix).
+          (
+            cd "${DIST}"
+            if command -v sha256sum >/dev/null 2>&1; then
+              sha256sum "${NAME}" > "${NAME}.sha256"
+            else
+              shasum -a 256 "${NAME}" > "${NAME}.sha256"
+            fi
+          )
+          echo "Built dist/${NAME}"
+          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
+
+      # Upload only this leg's own asset + checksum by exact name, so a missing
+      # expected artifact (e.g. a staging bug) fails the job instead of silently
+      # publishing an incomplete release.
+      - name: Upload binaries to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/${{ steps.pkg.outputs.name }}
+            dist/${{ steps.pkg.outputs.name }}.sha256
+          fail_on_unmatched_files: true

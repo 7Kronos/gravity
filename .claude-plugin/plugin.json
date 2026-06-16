@@ -1,0 +1,17 @@
+{
+  "name": "gravity-dsl",
+  "version": "0.1.0",
+  "description": "Read and write Gravity DSL (.gravity) source — full grammar, canonical formatting, and validation rules for the Gravity DSL reference compiler.",
+  "author": {
+    "name": "Gravity team"
+  },
+  "homepage": "https://github.com/7Kronos/gravity",
+  "repository": "https://github.com/7Kronos/gravity",
+  "license": "Apache-2.0",
+  "keywords": [
+    "gravity",
+    "dsl",
+    "codegen",
+    "domain-modeling"
+  ]
+}
