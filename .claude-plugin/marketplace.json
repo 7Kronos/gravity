@@ -1,0 +1,18 @@
+{
+  "name": "gravity",
+  "owner": {
+    "name": "7Kronos",
+    "url": "https://github.com/7Kronos"
+  },
+  "metadata": {
+    "description": "Gravity DSL ecosystem plugins — the gravity-dsl agent skill for reading and writing .gravity source."
+  },
+  "plugins": [
+    {
+      "name": "gravity-dsl",
+      "source": "./",
+      "version": "0.1.0",
+      "description": "Read and write Gravity DSL (.gravity) source — grammar, canonical formatting, and validation rules."
+    }
+  ]
+}

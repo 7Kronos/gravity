@@ -1,0 +1,29 @@
+namespace billing;
+
+type Money version 2 {
+    amount: Decimal;
+    currency: String;
+}
+
+entity Invoice version 1 {
+    identity id: UUID;
+
+    properties {
+        payment: Money@2;
+        refund: Money@2?;
+        line_items: Money@2[];
+        optional_amounts: Money@2?[];
+    }
+}
+
+entity Invoice version 2 deprecates version 1 until "2026-12-31" {
+    identity id: UUID;
+
+    properties {
+        payment: Money@2;
+        refund: Money@2?;
+        line_items: Money@2[];
+        optional_amounts: Money@2?[];
+        issued_on: Date;
+    }
+}
