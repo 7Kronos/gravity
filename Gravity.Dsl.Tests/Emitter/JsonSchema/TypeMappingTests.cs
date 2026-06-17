@@ -193,6 +193,30 @@ $@"entity F version 1 {{
         required.Should().NotContain("m", because: "an optional map is absent from required");
     }
 
+    [Fact]
+    public void Map_ItemLevelAnnotation_RoutesToAdditionalProperties()
+    {
+        // @json_schema item-level keys (pattern, format, ...) constrain the map
+        // VALUES, so they must land on additionalProperties, not the outer object
+        // (Draft-07 ignores `pattern` on an object).
+        var actual = RunAndExtractFieldFragment(
+            FixtureWith("m: Map<String, String> @json_schema(pattern: \"^[A-Z]+$\")"), "m");
+        actual.GetProperty("type").GetString().Should().Be("object");
+        actual.GetProperty("additionalProperties").GetProperty("pattern").GetString().Should().Be("^[A-Z]+$");
+        actual.TryGetProperty("pattern", out _).Should().BeFalse(
+            because: "item-level constraints must not land on the outer object wrapper");
+    }
+
+    [Fact]
+    public void Map_ContainerLevelAnnotation_StaysOnWrapper()
+    {
+        // description is container-level metadata and stays on the map wrapper.
+        var actual = RunAndExtractFieldFragment(
+            FixtureWith("m: Map<String, String> @json_schema(description: \"ext ids\")"), "m");
+        actual.GetProperty("description").GetString().Should().Be("ext ids");
+        actual.GetProperty("additionalProperties").TryGetProperty("description", out _).Should().BeFalse();
+    }
+
     private static bool JsonElementEqualOrdered(System.Text.Json.JsonElement a, System.Text.Json.JsonElement b)
     {
         if (a.ValueKind != b.ValueKind) return false;

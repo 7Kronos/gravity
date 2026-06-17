@@ -63,4 +63,14 @@ entity F version 1 {{
         sql.Should().Contain("external_ids JSONB");
         sql.Should().NotContain("external_ids JSONB NOT NULL");
     }
+
+    [Fact]
+    public void ArrayOfMap_IsJsonbArrayColumn()
+    {
+        // The [] modifier produces a real PG array of JSONB, mirroring the
+        // primitive/named array convention (e.g. INTEGER[]) and keeping
+        // Map<K,V> distinguishable from Map<K,V>[] across emitters.
+        var sql = RenderEntityTable("external_ids: Map<String, String>[]");
+        sql.Should().Contain("external_ids JSONB[] NOT NULL");
+    }
 }

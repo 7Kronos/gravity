@@ -59,22 +59,33 @@ internal static class AnnotationFolder
     {
         if (fragment is null) throw new ArgumentNullException(nameof(fragment));
 
-        // FR-332 array wrapper routing: when the outer fragment is an array
-        // wrapper ({ "type": "array", "items": ... }), item-level constraint
-        // keywords (pattern, minLength, etc.) are meaningless at the array
-        // level in Draft-07. Route them to the items schema; keep array-level
-        // metadata (description, examples) on the wrapper itself.
+        // Wrapper routing: when the outer fragment is a container wrapper,
+        // item-level constraint keywords (pattern, minLength, etc.) are
+        // meaningless on the wrapper itself in Draft-07 and must land on the
+        // inner schema. Two wrapper shapes exist:
+        //   - array (FR-332): { "type": "array", "items": <inner> }   -> items
+        //   - map:            { "type": "object", "additionalProperties": <inner> } -> additionalProperties
+        // Container-level metadata (description, examples) stays on the wrapper.
         JsonObject targetForItemLevel = fragment;
-        bool isArrayWrapper = false;
+        bool routeItemLevel = false;
         if (fragment.TryGetPropertyValue("type", out var typeNode)
             && typeNode is JsonValue tv
-            && tv.TryGetValue<string>(out var typeStr)
-            && string.Equals(typeStr, "array", StringComparison.Ordinal)
-            && fragment.TryGetPropertyValue("items", out var itemsNode)
-            && itemsNode is JsonObject itemsObj)
+            && tv.TryGetValue<string>(out var typeStr))
         {
-            isArrayWrapper = true;
-            targetForItemLevel = itemsObj;
+            if (string.Equals(typeStr, "array", StringComparison.Ordinal)
+                && fragment.TryGetPropertyValue("items", out var itemsNode)
+                && itemsNode is JsonObject itemsObj)
+            {
+                routeItemLevel = true;
+                targetForItemLevel = itemsObj;
+            }
+            else if (string.Equals(typeStr, "object", StringComparison.Ordinal)
+                && fragment.TryGetPropertyValue("additionalProperties", out var addlNode)
+                && addlNode is JsonObject addlObj)
+            {
+                routeItemLevel = true;
+                targetForItemLevel = addlObj;
+            }
         }
 
         foreach (var ann in annotations)
@@ -94,7 +105,7 @@ internal static class AnnotationFolder
                         ann.Span));
                     continue;
                 }
-                JsonObject target = isArrayWrapper && ItemLevelKeys.Contains(key)
+                JsonObject target = routeItemLevel && ItemLevelKeys.Contains(key)
                     ? targetForItemLevel
                     : fragment;
                 switch (key)

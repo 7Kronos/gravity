@@ -187,6 +187,35 @@ public sealed class ParserTests
         result.Diagnostics.Should().NotContain(d => d.RuleId == "PARSE010");
     }
 
+    [Fact]
+    public void DeeplyNestedMap_Emits_PARSE010_NotStackOverflow()
+    {
+        // ParseTypeRef recurses through Map<K, V>; without the depth guard this
+        // would overflow the CLR stack (an uncatchable crash). At the production
+        // cap (256) a 300-deep map nest must surface PARSE010 instead.
+        const int depth = 300;
+        var sb = new System.Text.StringBuilder();
+        sb.Append("entity X version 1 { identity id: UUID; properties { p: ");
+        for (int i = 0; i < depth; i++) sb.Append("Map<String, ");
+        sb.Append("String");
+        for (int i = 0; i < depth; i++) sb.Append('>');
+        sb.Append("; } }\n");
+
+        var result = Parser.Parse("nested-map.gravity", sb.ToString());
+        result.Diagnostics.Should().Contain(d => d.RuleId == "PARSE010"
+            && d.Message.Contains("maximum nesting depth"));
+    }
+
+    [Fact]
+    public void ModestlyNestedMap_DoesNotTrip_PARSE010()
+    {
+        // A reasonable nested map parses cleanly under the production cap.
+        var src = "entity X version 1 { identity id: UUID; properties { "
+            + "p: Map<String, Map<String, String>>; } }\n";
+        var result = Parser.Parse("ok-map.gravity", src);
+        result.Diagnostics.Should().NotContain(d => d.RuleId == "PARSE010");
+    }
+
     internal static string SampleRoot()
     {
         // Walk up to find /workspace/gravity/samples/registry from the test binary.

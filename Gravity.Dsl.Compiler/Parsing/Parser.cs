@@ -598,6 +598,23 @@ public static class Parser
 
     private static TypeRef ParseTypeRef(ParserState s)
     {
+        // ParseTypeRef recurses through Map<Key, Value>; guard the recursion with
+        // the same per-state depth counter every other recursive production uses,
+        // so adversarially-nested maps surface PARSE010 instead of overflowing the
+        // CLR stack (which is an uncatchable crash).
+        s.EnterDepth();
+        try
+        {
+            return ParseTypeRefCore(s);
+        }
+        finally
+        {
+            s.ExitDepth();
+        }
+    }
+
+    private static TypeRef ParseTypeRefCore(ParserState s)
+    {
         var nameTok = s.Expect(TokenKind.Identifier);
 
         // Map<Key, Value> — `Map` is a contextual type keyword, recognised only when
