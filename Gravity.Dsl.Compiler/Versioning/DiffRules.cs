@@ -409,6 +409,7 @@ internal static class DiffRules
     {
         PrimitiveTypeRef p => p.IsOptional,
         NamedTypeRef n => n.IsOptional,
+        MapTypeRef m => m.IsOptional,
         _ => false
     };
 

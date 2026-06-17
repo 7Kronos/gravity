@@ -35,6 +35,7 @@ internal static class ValueTypeRenderer
             {
                 PrimitiveTypeRef p => p.IsOptional,
                 NamedTypeRef n => n.IsOptional,
+                MapTypeRef m => m.IsOptional,
                 _ => false,
             };
             if (!optional)

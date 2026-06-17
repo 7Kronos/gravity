@@ -15,6 +15,7 @@ internal static class RuleIds
     public const string Val006 = "VAL006"; // FR-051 annotation namespace not claimed
     public const string Val009 = "VAL009"; // FR-041 deprecates date format
     public const string Val010 = "VAL010"; // FR-022 optional + many is forbidden
+    public const string Val031 = "VAL031"; // map key type must be a non-optional, non-array scalar primitive
 
     // Phase 8 (P8c) breaking-change rules. See FR-130..FR-138, FR-151.
     public const string Val020 = "VAL020"; // FR-130 field removed (entity property / value-type field / event payload)

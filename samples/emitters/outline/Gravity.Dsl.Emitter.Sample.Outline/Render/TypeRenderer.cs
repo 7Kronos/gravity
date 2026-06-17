@@ -33,6 +33,15 @@ internal static class TypeRenderer
                 if (n.IsOptional) sb.Append('?');
                 if (n.IsArray) sb.Append("[]");
                 break;
+            case MapTypeRef m:
+                sb.Append("Map<");
+                sb.Append(Render(m.Key));
+                sb.Append(", ");
+                sb.Append(Render(m.Value));
+                sb.Append('>');
+                if (m.IsOptional) sb.Append('?');
+                if (m.IsArray) sb.Append("[]");
+                break;
             default:
                 sb.Append('?');
                 break;

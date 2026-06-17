@@ -76,6 +76,14 @@ entity Employee version 1 { /* ... */ }
 - `?` and `[]` may be written in either order in source, but canonical form is
   always `?[]`.
 
+**Maps** declare key/value dictionaries: `Map<KeyType, ValueType>` (e.g.
+`external_ids: Map<String, String>`). The key must be a non-optional, non-array
+scalar primitive (else `VAL031`); the value may be any type, including a nested
+`Map`. The map as a whole accepts the `?`/`[]` modifiers (`Map<String, String>?`).
+Canonical form puts a single space after the comma. Emits as C#
+`ImmutableDictionary<K, V>`, JSON Schema `object` + `additionalProperties`, and
+Postgres `JSONB`.
+
 **Value types** group named fields; **enums** list variants:
 
 ```gravity

@@ -1,0 +1,20 @@
+namespace fixtures;
+
+type Address { street: String; city: String; }
+
+entity MapHolder version 1 {
+    identity id: UUID;
+    properties {
+        external_ids: Map<String, String>;
+        scores: Map<String, Int>?;
+        addresses: Map<String, Address>;
+        nested: Map<String, Map<String, String>>;
+        tags: Map<String, String[]>;
+    }
+    events {
+        Synced { sources: Map<String, String>; };
+    }
+    commands {
+        Link(ids: Map<String, String>) returns Address with side_effect Synced;
+    }
+}

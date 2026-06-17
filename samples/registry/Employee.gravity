@@ -27,6 +27,7 @@ entity Employee version 1 {
     hire_date:      Date;
     contract_type:  ContractType;
     contact:        ContactInfo?;
+    external_ids:   Map<String, String>;
   }
 
   lifecycle {
