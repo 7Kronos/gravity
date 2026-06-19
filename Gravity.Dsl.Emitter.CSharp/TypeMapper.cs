@@ -29,6 +29,12 @@ internal static class TypeMapper
     {
         PrimitiveTypeRef p => (PrimitiveName(p.Kind), p.IsOptional, p.IsArray),
         NamedTypeRef n => (n.Name, n.IsOptional, n.IsArray),
+        // A map renders as an immutable dictionary; key and value are rendered
+        // recursively so nested modifiers (e.g. Map<String, String[]>) carry
+        // through. The outer ?/[] modifiers wrap the dictionary like any other type.
+        MapTypeRef m => (
+            "ImmutableDictionary<" + Render(m.Key) + ", " + Render(m.Value) + ">",
+            m.IsOptional, m.IsArray),
         _ => throw new System.InvalidOperationException(
             "unsupported TypeRef " + tr.GetType().FullName)
     };

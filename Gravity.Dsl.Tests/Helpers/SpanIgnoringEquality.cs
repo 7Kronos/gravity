@@ -152,6 +152,11 @@ internal static class SpanIgnoringEquality
             return na.Name == nb.Name && na.IsOptional == nb.IsOptional && na.IsArray == nb.IsArray
                 && na.Version == nb.Version;
         }
+        if (a is MapTypeRef ma && b is MapTypeRef mb)
+        {
+            return ma.IsOptional == mb.IsOptional && ma.IsArray == mb.IsArray
+                && Equal(ma.Key, mb.Key) && Equal(ma.Value, mb.Value);
+        }
         return false;
     }
 

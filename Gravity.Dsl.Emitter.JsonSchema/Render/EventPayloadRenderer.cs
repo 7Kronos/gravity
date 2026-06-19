@@ -34,6 +34,7 @@ internal static class EventPayloadRenderer
             {
                 PrimitiveTypeRef p => p.IsOptional,
                 NamedTypeRef n => n.IsOptional,
+                MapTypeRef m => m.IsOptional,
                 _ => false,
             };
             if (!optional)

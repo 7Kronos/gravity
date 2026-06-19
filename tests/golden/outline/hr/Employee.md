@@ -20,6 +20,7 @@ _(none)_
 | hire_date | Date |
 | contract_type | ContractType |
 | contact | ContactInfo? |
+| external_ids | Map<String, String> |
 
 ## Lifecycle
 

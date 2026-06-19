@@ -234,6 +234,14 @@ internal static class Renderers
         {
             if (n.IsArray) set.Add("System.Collections.Immutable");
         }
+        else if (t is MapTypeRef m)
+        {
+            // Maps render as ImmutableDictionary<,>; recurse so the key/value
+            // types pull in their own usings (e.g. Guid -> System).
+            set.Add("System.Collections.Immutable");
+            AddUsingsFor(m.Key, set);
+            AddUsingsFor(m.Value, set);
+        }
     }
 
     private static void AppendUsings(StringBuilder sb, SortedSet<string> usings)

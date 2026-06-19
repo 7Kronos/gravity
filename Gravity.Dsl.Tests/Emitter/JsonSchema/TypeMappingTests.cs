@@ -156,6 +156,67 @@ $@"entity F version 1 {{
             because: "FR-332 documented asymmetry: String?[] and String[] produce identical fragments");
     }
 
+    [Fact]
+    public void Map_StringToString_IsObjectWithStringAdditionalProperties()
+    {
+        var actual = RunAndExtractFieldFragment(FixtureWith("m: Map<String, String>"), "m");
+        actual.GetProperty("type").GetString().Should().Be("object");
+        actual.GetProperty("additionalProperties").GetProperty("type").GetString().Should().Be("string");
+    }
+
+    [Fact]
+    public void Map_ValueTypeIsRenderedRecursively()
+    {
+        // Map<String, Int>: additionalProperties carries the full Int fragment.
+        var actual = RunAndExtractFieldFragment(FixtureWith("m: Map<String, Int>"), "m");
+        var addl = actual.GetProperty("additionalProperties");
+        addl.GetProperty("type").GetString().Should().Be("integer");
+        addl.GetProperty("minimum").GetInt64().Should().Be(int.MinValue);
+        addl.GetProperty("maximum").GetInt64().Should().Be(int.MaxValue);
+    }
+
+    [Fact]
+    public void OptionalMap_SameFragment_ButExcludedFromRequired()
+    {
+        var src = FixtureWith("m: Map<String, String>?");
+        var parsed = Parser.Parse("Fixture.gravity", src);
+        var resolve = Resolver.Resolve(new[] { parsed.File! }, inputRoot: "/tmp");
+        var emitter = new JsonSchemaEmitter();
+        var sink = new BufferedEmitterOutput();
+        var cfg = new EmitterConfig("json-schema", true, "out",
+            ImmutableSortedDictionary<string, object>.Empty.Add("output", "out"));
+        emitter.Emit(resolve.Model!, cfg, sink);
+        var doc = System.Text.Json.JsonDocument.Parse(sink.Snapshot().Single().Value);
+        var root = doc.RootElement;
+        root.GetProperty("properties").GetProperty("m").GetProperty("type").GetString().Should().Be("object");
+        var required = root.GetProperty("required").EnumerateArray().Select(e => e.GetString()).ToArray();
+        required.Should().NotContain("m", because: "an optional map is absent from required");
+    }
+
+    [Fact]
+    public void Map_ItemLevelAnnotation_RoutesToAdditionalProperties()
+    {
+        // @json_schema item-level keys (pattern, format, ...) constrain the map
+        // VALUES, so they must land on additionalProperties, not the outer object
+        // (Draft-07 ignores `pattern` on an object).
+        var actual = RunAndExtractFieldFragment(
+            FixtureWith("m: Map<String, String> @json_schema(pattern: \"^[A-Z]+$\")"), "m");
+        actual.GetProperty("type").GetString().Should().Be("object");
+        actual.GetProperty("additionalProperties").GetProperty("pattern").GetString().Should().Be("^[A-Z]+$");
+        actual.TryGetProperty("pattern", out _).Should().BeFalse(
+            because: "item-level constraints must not land on the outer object wrapper");
+    }
+
+    [Fact]
+    public void Map_ContainerLevelAnnotation_StaysOnWrapper()
+    {
+        // description is container-level metadata and stays on the map wrapper.
+        var actual = RunAndExtractFieldFragment(
+            FixtureWith("m: Map<String, String> @json_schema(description: \"ext ids\")"), "m");
+        actual.GetProperty("description").GetString().Should().Be("ext ids");
+        actual.GetProperty("additionalProperties").TryGetProperty("description", out _).Should().BeFalse();
+    }
+
     private static bool JsonElementEqualOrdered(System.Text.Json.JsonElement a, System.Text.Json.JsonElement b)
     {
         if (a.ValueKind != b.ValueKind) return false;

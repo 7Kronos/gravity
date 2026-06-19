@@ -28,15 +28,8 @@ internal static class EntityBundleRenderer
         var required = new JsonArray();
 
         // (1) Identity field (FR-314 step 1).
-        if (entity.Identity.Type is PrimitiveTypeRef identPrim)
-        {
-            properties[entity.Identity.FieldName] = TypeMapper.MapPrimitive(identPrim.Kind);
-        }
-        else if (entity.Identity.Type is NamedTypeRef identNamed)
-        {
-            properties[entity.Identity.FieldName] = TypeMapper.MapNamedType(
-                identNamed, referrerNamespace, model, multiVersionFqns);
-        }
+        properties[entity.Identity.FieldName] = TypeMapper.RenderTypeRef(
+            entity.Identity.Type, referrerNamespace, model, multiVersionFqns);
         required.Add(JsonValue.Create(entity.Identity.FieldName));
 
         // (2) Each PropertyDecl (FR-314 step 2). JS003: user property collides
@@ -61,6 +54,7 @@ internal static class EntityBundleRenderer
             {
                 PrimitiveTypeRef pp => pp.IsOptional,
                 NamedTypeRef pn => pn.IsOptional,
+                MapTypeRef pm => pm.IsOptional,
                 _ => false,
             };
             if (!optional)

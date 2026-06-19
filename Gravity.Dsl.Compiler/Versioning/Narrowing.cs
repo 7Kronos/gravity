@@ -30,6 +30,26 @@ internal static class Narrowing
         // (2) Array-ness lost: T[] -> T narrows.
         if (Arr(prev) && !Arr(next)) return true;
 
+        // (2.5) Map types. A map-to-map transition narrows if its key type changed
+        // (keys are the serialized contract surface) or its value type narrows by
+        // the same rules applied recursively. A map ↔ non-map transition is a
+        // contract change and is treated as narrowing, consistent with rule (5).
+        if (prev is MapTypeRef || next is MapTypeRef)
+        {
+            if (prev is MapTypeRef mp && next is MapTypeRef mn)
+            {
+                if (!string.Equals(
+                        TypeRefRenderer.Render(mp.Key),
+                        TypeRefRenderer.Render(mn.Key),
+                        System.StringComparison.Ordinal))
+                {
+                    return true;
+                }
+                return IsNarrowing(mp.Value, mn.Value);
+            }
+            return true;
+        }
+
         // (3) Same-kind primitive: apply the closed-form table.
         if (prev is PrimitiveTypeRef pp && next is PrimitiveTypeRef pn)
         {
@@ -61,6 +81,7 @@ internal static class Narrowing
     {
         PrimitiveTypeRef p => p.IsOptional,
         NamedTypeRef n => n.IsOptional,
+        MapTypeRef m => m.IsOptional,
         _ => false
     };
 
@@ -68,6 +89,7 @@ internal static class Narrowing
     {
         PrimitiveTypeRef p => p.IsArray,
         NamedTypeRef n => n.IsArray,
+        MapTypeRef m => m.IsArray,
         _ => false
     };
 

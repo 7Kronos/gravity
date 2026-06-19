@@ -50,6 +50,14 @@ internal static class TypeMapper
                 string typeName = ResolveNamedTypeName(n, cfg, multiVersionFqns, declToFile);
                 return n.IsArray ? typeName + "[]" : typeName;
             }
+            case MapTypeRef m:
+                // A map is stored as a single JSONB value: a JSON object whose
+                // members are the key/value pairs. The '[]' modifier produces a
+                // real PostgreSQL array of JSONB (JSONB[]), mirroring the
+                // primitive/named branches above so Map<K,V> and Map<K,V>[] stay
+                // distinguishable across emitters. Uppercased to match the
+                // primitive spellings (TEXT, UUID, ...) this emitter produces.
+                return m.IsArray ? "JSONB[]" : "JSONB";
             default:
                 throw new NotSupportedException("Unknown TypeRef shape " + typeRef.GetType().Name);
         }
@@ -118,6 +126,7 @@ internal static class TypeMapper
     {
         PrimitiveTypeRef p => p.IsOptional,
         NamedTypeRef n     => n.IsOptional,
+        MapTypeRef m       => m.IsOptional,
         _ => false,
     };
 

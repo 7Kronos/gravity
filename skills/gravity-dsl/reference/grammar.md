@@ -102,7 +102,8 @@ Command      = IDENT '(' ( Arg ( ',' Arg )* )? ')'
 Arg          = IDENT ':' TypeRef ;                  (* no trailing ';' *)
 
 (* ---------- types ---------- *)
-TypeRef      = IDENT VersionSuffix? TypeMods ;
+TypeRef      = MapType | ( IDENT VersionSuffix? ) TypeMods ;
+MapType      = 'Map' '<' TypeRef ',' TypeRef '>' TypeMods ;
 VersionSuffix= '@' INT ;                            (* named refs only *)
 TypeMods     = ( '?' ( '[' ']' )? ) | ( '[' ']' '?'? ) | (* nothing *) ;
 
@@ -126,6 +127,25 @@ constraints (`Parser.ParseTypeRef`, `RefuseVersionSuffix`):
 - Disambiguation: `@` followed by an *identifier* is an **annotation**
   (`@csharp(...)`), not a version suffix. `@` followed by a digit/other is a
   version-suffix attempt.
+
+## Map (dictionary) types — exact rules
+
+`Map<KeyType, ValueType>` declares a key/value map (e.g. external identities
+`{ "external_tool1": "KEY1", ... }`). `Map` is a **contextual** type keyword —
+it is only special when immediately followed by `<`, so a user type literally
+named `Map` referenced without `<` still parses as an ordinary named reference.
+
+- The **key type** must be a **non-optional, non-array scalar primitive**
+  (`String`, `Int`, `Long`, `Decimal`, `Boolean`, `Date`, `DateTime`, `UUID`).
+  A non-scalar key → `VAL031`. Keys become object property names in the JSON
+  Schema target, so they must be string-serializable.
+- The **value type** may be any `TypeRef`, including a named type, an array
+  (`Map<String, String[]>`), or a nested map (`Map<String, Map<String, Int>>`).
+- The `?`/`[]` modifiers apply to the map as a whole: `Map<String, String>?`.
+- Canonical form is `Map<Key, Value>` with a single space after the comma.
+- Emitter mappings: C# → `ImmutableDictionary<K, V>`; JSON Schema →
+  `{ "type": "object", "additionalProperties": <value schema> }`; Postgres →
+  `JSONB`.
 
 ## Things the parser enforces structurally
 

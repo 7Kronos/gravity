@@ -78,6 +78,7 @@ internal static class TypeMapper
         {
             PrimitiveTypeRef p => p.IsArray,
             NamedTypeRef n => n.IsArray,
+            MapTypeRef m => m.IsArray,
             _ => false,
         };
         if (isArray)
@@ -89,6 +90,44 @@ internal static class TypeMapper
             };
         }
         return inner;
+    }
+
+    /// <summary>
+    /// Render any <see cref="TypeRef"/> to its JSON Schema fragment, applying the
+    /// FR-331/FR-332 array wrapping. A map renders as
+    /// <c>{ "type": "object", "additionalProperties": &lt;value schema&gt; }</c>:
+    /// map keys become JSON object property names (always strings — enforced by
+    /// VAL031), and the value schema is produced recursively. Used by
+    /// <see cref="Render.PropertyRenderer"/> and for nested map values.
+    /// </summary>
+    public static JsonNode RenderTypeRef(
+        TypeRef typeRef,
+        string? referrerNamespace,
+        ResolvedModel model,
+        IReadOnlySet<string> multiVersionFqns)
+    {
+        switch (typeRef)
+        {
+            case PrimitiveTypeRef p:
+                return WrapTypeRef(MapPrimitive(p.Kind), p);
+            case NamedTypeRef n:
+                return WrapTypeRef(MapNamedType(n, referrerNamespace, model, multiVersionFqns), n);
+            case MapTypeRef m:
+            {
+                var inner = new JsonObject
+                {
+                    ["type"] = "object",
+                    ["additionalProperties"] = RenderTypeRef(m.Value, referrerNamespace, model, multiVersionFqns),
+                };
+                return WrapTypeRef(inner, m);
+            }
+            default:
+                // Fail loud on an unknown TypeRef shape rather than silently
+                // emitting a wrong schema — matches the CSharp/Postgres emitters'
+                // default-throw, so a future TypeRef subtype can't slip through.
+                throw new InvalidOperationException(
+                    "unsupported TypeRef shape '" + typeRef.GetType().Name + "'");
+        }
     }
 
     /// <summary>

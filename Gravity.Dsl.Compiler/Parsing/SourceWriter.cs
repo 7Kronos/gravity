@@ -298,6 +298,17 @@ public static class SourceWriter
                 }
                 WriteTypeSuffix(sb, n.IsOptional, n.IsArray);
                 break;
+            case MapTypeRef m:
+                // Canonical form: Map<Key, Value> with a single space after the
+                // comma. Key/value are rendered recursively so nested modifiers
+                // (e.g. Map<String, String[]>) round-trip exactly.
+                sb.Append("Map<");
+                WriteTypeRef(sb, m.Key);
+                sb.Append(", ");
+                WriteTypeRef(sb, m.Value);
+                sb.Append('>');
+                WriteTypeSuffix(sb, m.IsOptional, m.IsArray);
+                break;
         }
     }
 

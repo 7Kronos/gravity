@@ -46,6 +46,7 @@ public static class Validator
                     break;
                 case ValueTypeDecl vt:
                     ValidateAnnotations(vt.Annotations, claimed, diagnostics);
+                    foreach (var f in vt.Fields) ValidateMapKeys(f.Type, diagnostics);
                     break;
                 case EnumDecl en:
                     ValidateAnnotations(en.Annotations, claimed, diagnostics);
@@ -68,6 +69,14 @@ public static class Validator
 
     private static void ValidateEntity(EntityDecl entity, HashSet<string> claimed, List<Diagnostic> diagnostics)
     {
+        // VAL031: map key constraint applies to every type reference in the entity.
+        ValidateMapKeys(entity.Identity.Type, diagnostics);
+        foreach (var prop in entity.Properties) ValidateMapKeys(prop.Type, diagnostics);
+        foreach (var evt in entity.Events)
+            foreach (var f in evt.Payload) ValidateMapKeys(f.Type, diagnostics);
+        foreach (var cmd in entity.Commands)
+            foreach (var a in cmd.Arguments) ValidateMapKeys(a.Type, diagnostics);
+
         // VAL005: identity type is not UUID -> warning.
         if (entity.Identity.Type is PrimitiveTypeRef p)
         {
@@ -235,4 +244,29 @@ public static class Validator
     }
 
     private static bool IsAsciiDigit(char c) => c >= '0' && c <= '9';
+
+    /// <summary>
+    /// VAL031: a map key must be a non-optional, non-array scalar primitive. Map
+    /// keys become object property names in the JSON Schema target, so they must
+    /// be string-serializable scalars. Recurses through nested maps (the value of
+    /// a map may itself be a map) so every key in the tree is checked.
+    /// </summary>
+    private static void ValidateMapKeys(TypeRef type, List<Diagnostic> diagnostics)
+    {
+        if (type is not MapTypeRef m) return;
+
+        if (m.Key is not PrimitiveTypeRef { IsOptional: false, IsArray: false })
+        {
+            diagnostics.Add(new Diagnostic(
+                DiagnosticSeverity.Error,
+                RuleIds.Val031,
+                "map key type must be a non-optional, non-array scalar primitive (String, Int, "
+                    + "Long, Decimal, Boolean, Date, DateTime, UUID); '"
+                    + TypeRefRenderer.Render(m.Key) + "' is not permitted",
+                m.Span));
+        }
+
+        ValidateMapKeys(m.Key, diagnostics);
+        ValidateMapKeys(m.Value, diagnostics);
+    }
 }

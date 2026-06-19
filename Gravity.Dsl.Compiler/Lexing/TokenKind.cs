@@ -27,6 +27,8 @@ internal enum TokenKind
     Arrow,         // ->
     At,            // @
     Dot,           // .
+    LAngle,        // <  (opens a Map<...> type)
+    RAngle,        // >  (closes a Map<...> type)
 
     // Reserved words (FR-004)
     Namespace,

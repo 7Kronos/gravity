@@ -491,6 +491,18 @@ public static class Resolver
         Dictionary<NamedTypeRef, DeclKey>? bindings,
         List<Diagnostic> diagnostics)
     {
+        // A map references types through its key and value; resolve both. The key
+        // is constrained to a scalar primitive (VAL031), but recursing is harmless
+        // and keeps named-type values (e.g. Map<String, ContactInfo>) resolvable.
+        if (tr is MapTypeRef map)
+        {
+            CheckTypeRef(map.Key, scope, simpleToFqn, visibleFiles, declKeyToFile,
+                versionIndex, declMap, bindings, diagnostics);
+            CheckTypeRef(map.Value, scope, simpleToFqn, visibleFiles, declKeyToFile,
+                versionIndex, declMap, bindings, diagnostics);
+            return;
+        }
+
         if (tr is not NamedTypeRef named) return;
 
         // Simple-name in scope? (Phase 0–3 semantics for "name not found".)

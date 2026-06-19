@@ -44,6 +44,7 @@ emit diagnostics with a stable rule id, a `path:line:col` span, and a severity
 | VAL006 | Error    | Annotation namespace is not claimed by any registered emitter. |
 | VAL009 | Error    | `deprecates ... until` date is not a well-formed / valid `YYYY-MM-DD`. |
 | VAL010 | Error    | A relation combines `?` (optional) with `cardinality many`. |
+| VAL031 | Error    | A `Map<K, V>` key type is not a non-optional, non-array scalar primitive. |
 
 > `VAL007` (a namespace claimed by two emitters) is enforced by the emitter host,
 > not the core validator.

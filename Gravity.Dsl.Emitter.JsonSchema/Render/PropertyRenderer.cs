@@ -29,22 +29,7 @@ internal static class PropertyRenderer
         string ownerFqn,
         ImmutableArray<Diagnostic>.Builder diags)
     {
-        JsonNode fragment;
-        if (typeRef is PrimitiveTypeRef p)
-        {
-            var inner = TypeMapper.MapPrimitive(p.Kind);
-            fragment = TypeMapper.WrapTypeRef(inner, p);
-        }
-        else if (typeRef is NamedTypeRef n)
-        {
-            var inner = TypeMapper.MapNamedType(n, referrerNamespace, model, multiVersionFqns);
-            fragment = TypeMapper.WrapTypeRef(inner, n);
-        }
-        else
-        {
-            // Defensive: AST should only ever produce these two TypeRef shapes.
-            fragment = new JsonObject { ["type"] = "string" };
-        }
+        JsonNode fragment = TypeMapper.RenderTypeRef(typeRef, referrerNamespace, model, multiVersionFqns);
 
         // Annotation folding applies to JsonObject fragments. $ref short-circuits
         // in the writer. When the fragment is an array wrapper, AnnotationFolder

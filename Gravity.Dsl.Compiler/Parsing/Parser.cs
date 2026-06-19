@@ -598,7 +598,41 @@ public static class Parser
 
     private static TypeRef ParseTypeRef(ParserState s)
     {
+        // ParseTypeRef recurses through Map<Key, Value>; guard the recursion with
+        // the same per-state depth counter every other recursive production uses,
+        // so adversarially-nested maps surface PARSE010 instead of overflowing the
+        // CLR stack (which is an uncatchable crash).
+        s.EnterDepth();
+        try
+        {
+            return ParseTypeRefCore(s);
+        }
+        finally
+        {
+            s.ExitDepth();
+        }
+    }
+
+    private static TypeRef ParseTypeRefCore(ParserState s)
+    {
         var nameTok = s.Expect(TokenKind.Identifier);
+
+        // Map<Key, Value> — `Map` is a contextual type keyword, recognised only when
+        // it is immediately followed by '<'. A user-declared type literally named
+        // `Map` and referenced without '<' still parses as a NamedTypeRef, so adding
+        // this constructor is non-breaking. Key and value are themselves TypeRefs;
+        // the validator (VAL031) constrains the key to a scalar primitive. The same
+        // '?'/'[]' modifiers as any other TypeRef may follow the closing '>'.
+        if (nameTok.Lexeme == "Map" && s.Peek().Kind == TokenKind.LAngle)
+        {
+            s.Consume(); // '<'
+            var key = ParseTypeRef(s);
+            s.Expect(TokenKind.Comma);
+            var value = ParseTypeRef(s);
+            s.Expect(TokenKind.RAngle);
+            ParseTypeMods(s, out bool mapOptional, out bool mapArray);
+            return new MapTypeRef(key, value, mapOptional, mapArray, nameTok.Span);
+        }
 
         // FR-100 / FR-101: optional '@N' version suffix is parsed BEFORE the '?'/'[]'
         // modifiers. Malformed suffixes emit PARSE020 at the '@' token and recover by
@@ -621,32 +655,7 @@ public static class Parser
             }
         }
 
-        // Parse [] and ? in either order; the spec (FR-011) makes the order significant
-        // for emission of "String[]?" vs "String?[]", so capture exactly what was written.
-        bool isOptional = false;
-        bool isArray = false;
-        if (s.Peek().Kind == TokenKind.Question)
-        {
-            s.Consume();
-            isOptional = true;
-            if (s.Peek().Kind == TokenKind.LBracket)
-            {
-                s.Consume();
-                s.Expect(TokenKind.RBracket);
-                isArray = true;
-            }
-        }
-        else if (s.Peek().Kind == TokenKind.LBracket)
-        {
-            s.Consume();
-            s.Expect(TokenKind.RBracket);
-            isArray = true;
-            if (s.Peek().Kind == TokenKind.Question)
-            {
-                s.Consume();
-                isOptional = true;
-            }
-        }
+        ParseTypeMods(s, out bool isOptional, out bool isArray);
 
         PrimitiveKind? prim = nameTok.Lexeme switch
         {
@@ -674,6 +683,40 @@ public static class Parser
             return new PrimitiveTypeRef(pk, isOptional, isArray, nameTok.Span);
         }
         return new NamedTypeRef(nameTok.Lexeme, isOptional, isArray, nameTok.Span, version);
+    }
+
+    /// <summary>
+    /// Parses the optional <c>?</c> and <c>[]</c> type modifiers in either order.
+    /// The spec (FR-011) makes the source order significant for canonical emission
+    /// of <c>String[]?</c> vs <c>String?[]</c>, so this captures exactly what was
+    /// written. Shared by primitive/named/map type references.
+    /// </summary>
+    private static void ParseTypeMods(ParserState s, out bool isOptional, out bool isArray)
+    {
+        isOptional = false;
+        isArray = false;
+        if (s.Peek().Kind == TokenKind.Question)
+        {
+            s.Consume();
+            isOptional = true;
+            if (s.Peek().Kind == TokenKind.LBracket)
+            {
+                s.Consume();
+                s.Expect(TokenKind.RBracket);
+                isArray = true;
+            }
+        }
+        else if (s.Peek().Kind == TokenKind.LBracket)
+        {
+            s.Consume();
+            s.Expect(TokenKind.RBracket);
+            isArray = true;
+            if (s.Peek().Kind == TokenKind.Question)
+            {
+                s.Consume();
+                isOptional = true;
+            }
+        }
     }
 
     /// <summary>

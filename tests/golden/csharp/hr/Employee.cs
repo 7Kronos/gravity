@@ -4,6 +4,7 @@
 // </auto-generated>
 
 using System;
+using System.Collections.Immutable;
 
 namespace AcmeCo.Domain.hr;
 
@@ -15,5 +16,6 @@ public sealed record Employee(
     DateOnly HireDate,
     ContractType ContractType,
     ContactInfo? Contact,
+    ImmutableDictionary<string, string> ExternalIds,
     EmployeeState State
 );

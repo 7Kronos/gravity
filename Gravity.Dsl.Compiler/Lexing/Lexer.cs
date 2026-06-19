@@ -238,6 +238,8 @@ internal static class Lexer
                 '?' => TokenKind.Question,
                 '@' => TokenKind.At,
                 '.' => TokenKind.Dot,
+                '<' => TokenKind.LAngle,
+                '>' => TokenKind.RAngle,
                 _ => null
             };
             if (punct is { } kindPunct)
