@@ -22,6 +22,9 @@ public sealed class CSharpEmitter : IEmitter
     /// <summary>Configuration key for the file-scoped-namespaces toggle.</summary>
     public const string ConfigKeyFileScopedNamespaces = "file_scoped_namespaces";
 
+    /// <summary>Configuration key for the events-file emission toggle.</summary>
+    public const string ConfigKeyEmitEvents = "emit_events";
+
     /// <inheritdoc/>
     public string TargetName => "csharp";
 
@@ -35,7 +38,8 @@ public sealed class CSharpEmitter : IEmitter
     /// <inheritdoc/>
     public EmitterConfigSchema ConfigurationSchema { get; } = new(ImmutableArray.Create(
         new ConfigKey(ConfigKeyNamespace, ConfigValueKind.String, Required: false, Default: null),
-        new ConfigKey(ConfigKeyFileScopedNamespaces, ConfigValueKind.Bool, Required: false, Default: true)
+        new ConfigKey(ConfigKeyFileScopedNamespaces, ConfigValueKind.Bool, Required: false, Default: true),
+        new ConfigKey(ConfigKeyEmitEvents, ConfigValueKind.Bool, Required: false, Default: true)
     ));
 
     /// <inheritdoc/>
@@ -47,6 +51,7 @@ public sealed class CSharpEmitter : IEmitter
 
         string? configPrefix = TryGetString(config, ConfigKeyNamespace);
         bool fileScoped = TryGetBool(config, ConfigKeyFileScopedNamespaces, defaultValue: true);
+        bool emitEvents = TryGetBool(config, ConfigKeyEmitEvents, defaultValue: true);
 
         // Map declaration name -> source SourceFile so we can resolve the DSL
         // namespace and the original .gravity relative path for the header.
@@ -78,7 +83,7 @@ public sealed class CSharpEmitter : IEmitter
                         Renderers.RenderEntityRecord(entity, csharpNs, fileScoped));
                     EmitOne(sink, Path.Combine(dir, entity.Name + "State.cs"), sourceRel,
                         Renderers.RenderStateEnum(entity, csharpNs, fileScoped));
-                    if (entity.Events.Length > 0)
+                    if (emitEvents && entity.Events.Length > 0)
                     {
                         EmitOne(sink, Path.Combine(dir, entity.Name + "Events.cs"), sourceRel,
                             Renderers.RenderEvents(entity, csharpNs, fileScoped));
