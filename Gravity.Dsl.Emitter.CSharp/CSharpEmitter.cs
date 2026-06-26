@@ -57,6 +57,11 @@ public sealed class CSharpEmitter : IEmitter
         // namespace and the original .gravity relative path for the header.
         var declToFile = BuildDeclToFile(model);
 
+        // Map entity FQN -> its identity field's C# type. Relation foreign keys
+        // are typed by their TARGET entity's identity (a relation is an FK to that
+        // identity), so the entity renderer needs this lookup to render FK fields.
+        var identityTypeByFqn = BuildIdentityTypeByFqn(model);
+
         // Walk Declarations in (FQN ordinal, Version asc) order (FR-161, enforced by
         // ImmutableSortedDictionary<DeclKey, TopLevelDecl> with DeclKeyComparer).
         foreach (var kv in model.Declarations)
@@ -80,7 +85,7 @@ public sealed class CSharpEmitter : IEmitter
                     break;
                 case EntityDecl entity:
                     EmitOne(sink, Path.Combine(dir, entity.Name + ".cs"), sourceRel,
-                        Renderers.RenderEntityRecord(entity, csharpNs, fileScoped));
+                        Renderers.RenderEntityRecord(entity, csharpNs, fileScoped, dslNs, identityTypeByFqn));
                     EmitOne(sink, Path.Combine(dir, entity.Name + "State.cs"), sourceRel,
                         Renderers.RenderStateEnum(entity, csharpNs, fileScoped));
                     if (emitEvents && entity.Events.Length > 0)
@@ -121,6 +126,25 @@ public sealed class CSharpEmitter : IEmitter
                 {
                     map[fqn] = file;
                 }
+            }
+        }
+        return map;
+    }
+
+    /// <summary>
+    /// Build a map of entity FQN -> the C# type of its <c>identity</c> field
+    /// (rendered through <see cref="TypeMapper"/>). Used by the entity renderer to
+    /// type relation foreign keys after the referent identity. First-seen wins for
+    /// multi-version FQNs; an entity's identity type is stable across versions.
+    /// </summary>
+    private static Dictionary<string, string> BuildIdentityTypeByFqn(ResolvedModel model)
+    {
+        var map = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var kv in model.Declarations)
+        {
+            if (kv.Value is EntityDecl entity && !map.ContainsKey(kv.Key.Fqn))
+            {
+                map[kv.Key.Fqn] = TypeMapper.Render(entity.Identity.Type);
             }
         }
         return map;
