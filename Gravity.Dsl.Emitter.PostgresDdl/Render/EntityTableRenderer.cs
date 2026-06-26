@@ -96,7 +96,8 @@ internal static class EntityTableRenderer
         // (4) Relation columns (DSL declaration order).
         foreach (var r in entity.Relations)
         {
-            var rc = TypeMapper.MapRelation(r);
+            string fkElementType = TypeMapper.ResolveFkElementType(r, key, declToFile, multiVersionFqns, cfg, model);
+            var rc = TypeMapper.MapRelation(r, fkElementType);
             var line = new StringBuilder();
             line.Append(rc.ColumnName).Append(' ').Append(rc.ColumnType);
             if (!r.IsOptional)

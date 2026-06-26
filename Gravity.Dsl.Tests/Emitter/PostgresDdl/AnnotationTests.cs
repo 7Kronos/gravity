@@ -43,7 +43,7 @@ public sealed class AnnotationTests
             }
             """);
         result.Diagnostics.Should().BeEmpty();
-        var sql = files["out/schema/x/Doc.sql"];
+        var sql = files["schema/x/Doc.sql"];
         sql.Should().Contain("primary_email TEXT NOT NULL");
         // The original `email` identifier should not survive as a bare column declaration.
         sql.Should().NotContain("\n    email TEXT");
@@ -65,7 +65,7 @@ public sealed class AnnotationTests
             }
             """);
         result.Diagnostics.Should().BeEmpty();
-        files["out/schema/x/Doc.sql"].Should().Contain("email TEXT NOT NULL UNIQUE");
+        files["schema/x/Doc.sql"].Should().Contain("email TEXT NOT NULL UNIQUE");
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public sealed class AnnotationTests
             }
             """);
         result.Diagnostics.Should().BeEmpty();
-        files["out/schema/x/Doc.sql"].Should().Contain("CREATE INDEX IF NOT EXISTS ix_doc_code ON public.doc(code);");
+        files["schema/x/Doc.sql"].Should().Contain("CREATE INDEX IF NOT EXISTS ix_doc_code ON public.doc(code);");
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public sealed class AnnotationTests
             }
             """);
         result.Diagnostics.Should().BeEmpty();
-        files["out/schema/x/Doc.sql"].Should().Contain("DEFAULT 'EMP-' || nextval('seq')");
+        files["schema/x/Doc.sql"].Should().Contain("DEFAULT 'EMP-' || nextval('seq')");
     }
 
     [Fact]
@@ -218,6 +218,6 @@ public sealed class AnnotationTests
             """);
         result.Diagnostics.Should().ContainSingle().Which.RuleId.Should().Be("PG002");
         // Skipping the entity drops the schema/ entry too.
-        files.Should().NotContainKey("out/schema/x/Doc.sql");
+        files.Should().NotContainKey("schema/x/Doc.sql");
     }
 }

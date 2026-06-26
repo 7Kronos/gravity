@@ -106,19 +106,56 @@ internal static class TypeMapper
     public sealed record RelationColumn(string ColumnName, string ColumnType, bool IsArrayMany);
 
     /// <summary>
-    /// FR-433 / FR-434 — relation → column name + type + cardinality flag.
-    /// Cardinality-one returns <c>(rel_name + "_id", "UUID", false)</c>;
-    /// cardinality-many returns <c>(rel_name + "_ids", "UUID[]", true)</c>.
-    /// Target identity primitive is assumed <c>UUID</c> (the documented norm).
+    /// FR-433 / FR-434 — relation → column name + type + cardinality flag. The
+    /// <paramref name="elementType"/> is the TARGET entity's identity column type
+    /// (a relation is an FK to that identity, so the FK column type MUST equal the
+    /// referenced PK type — resolve it via <see cref="ResolveFkElementType"/>).
+    /// Cardinality-one returns <c>(rel_name + "_id", elementType, false)</c>;
+    /// cardinality-many returns <c>(rel_name + "_ids", elementType + "[]", true)</c>.
     /// </summary>
-    public static RelationColumn MapRelation(RelationDecl relation)
+    public static RelationColumn MapRelation(RelationDecl relation, string elementType)
     {
         string baseName = Identifier.ToSnakeCase(relation.Name);
         if (relation.Cardinality == Cardinality.Many)
         {
-            return new RelationColumn(baseName + "_ids", "UUID[]", IsArrayMany: true);
+            return new RelationColumn(baseName + "_ids", elementType + "[]", IsArrayMany: true);
         }
-        return new RelationColumn(baseName + "_id", "UUID", IsArrayMany: false);
+        return new RelationColumn(baseName + "_id", elementType, IsArrayMany: false);
+    }
+
+    /// <summary>
+    /// FR-433 / FR-434 — resolve the PostgreSQL element type of a relation's
+    /// foreign-key column: the TARGET entity's identity column type, mapped
+    /// through the SAME <see cref="MapType"/> the target uses for its PK column
+    /// (UUID→UUID, String→TEXT, Int→INTEGER, …). A <c>uuid</c> FK column over a
+    /// <c>text</c> PK produces invalid DDL, so the FK type must follow the
+    /// referent identity. Mirrors <see cref="ResolveFkTargetTable"/>'s FQN
+    /// resolution so the column type and the REFERENCES target stay in lock-step.
+    /// Falls back to <c>UUID</c> when the target entity cannot be resolved so
+    /// emission never crashes.
+    /// </summary>
+    public static string ResolveFkElementType(
+        RelationDecl relation,
+        DeclKey referrerKey,
+        IReadOnlyDictionary<string, SourceFile> declToFile,
+        IReadOnlySet<string> multiVersionFqns,
+        PostgresDdlEmitterConfig cfg,
+        ResolvedModel model)
+    {
+        string? fqn = ResolveTargetFqn(relation.TargetEntity, referrerKey.Fqn, declToFile);
+        if (fqn is not null)
+        {
+            // Identity type is stable across an FQN's versions; first match wins.
+            foreach (var kv in model.Declarations)
+            {
+                if (kv.Value is EntityDecl target
+                    && string.Equals(kv.Key.Fqn, fqn, StringComparison.Ordinal))
+                {
+                    return MapType(target.Identity.Type, cfg, multiVersionFqns, declToFile);
+                }
+            }
+        }
+        return "UUID";
     }
 
     /// <summary>Returns true when <paramref name="typeRef"/> carries the DSL <c>?</c> optional modifier.</summary>

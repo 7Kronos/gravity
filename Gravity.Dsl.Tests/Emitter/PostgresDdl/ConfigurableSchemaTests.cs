@@ -31,7 +31,7 @@ public sealed class ConfigurableSchemaTests
         var sink = new BufferedEmitterOutput();
         new PostgresDdlEmitter().Emit(model, ConfigWithSchema(schema), sink).Diagnostics.Should().BeEmpty();
 
-        var employee = sink.Snapshot()["postgres-ddl/schema/hr/Employee.sql"];
+        var employee = sink.Snapshot()["schema/hr/Employee.sql"];
         employee.Should().Contain("CREATE TABLE IF NOT EXISTS " + schema + ".employee");
         employee.Should().Contain("CREATE TYPE " + schema + ".employee_state");
     }
@@ -65,7 +65,7 @@ public sealed class ConfigurableSchemaTests
             Values: ImmutableSortedDictionary<string, object>.Empty
                 .Add("output", "postgres-ddl"));
         new PostgresDdlEmitter().Emit(model, cfg, sink).Diagnostics.Should().BeEmpty();
-        sink.Snapshot()["postgres-ddl/schema/hr/Employee.sql"]
+        sink.Snapshot()["schema/hr/Employee.sql"]
             .Should().Contain("CREATE TABLE IF NOT EXISTS public.employee");
     }
 }

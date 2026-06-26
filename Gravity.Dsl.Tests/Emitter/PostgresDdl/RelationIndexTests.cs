@@ -27,7 +27,7 @@ public sealed class RelationIndexTests
         var model = SamplesLoader.LoadRegistry();
         var sink = new BufferedEmitterOutput();
         new PostgresDdlEmitter().Emit(model, DefaultConfig(), sink).Diagnostics.Should().BeEmpty();
-        var sql = sink.Snapshot()["postgres-ddl/schema/hr/TimeEntry.sql"];
+        var sql = sink.Snapshot()["schema/hr/TimeEntry.sql"];
 
         // Column with NOT NULL (relations are non-optional in the sample).
         sql.Should().MatchRegex(@"employee_id UUID NOT NULL");
@@ -46,7 +46,7 @@ public sealed class RelationIndexTests
         var model = SamplesLoader.LoadRegistry();
         var sink = new BufferedEmitterOutput();
         new PostgresDdlEmitter().Emit(model, DefaultConfig(), sink).Diagnostics.Should().BeEmpty();
-        var sql = sink.Snapshot()["postgres-ddl/schema/hr/TimeEntry.sql"];
+        var sql = sink.Snapshot()["schema/hr/TimeEntry.sql"];
 
         int posEmployee = sql.IndexOf("ix_time_entry_employee_id");
         int posProject = sql.IndexOf("ix_time_entry_project_id");
