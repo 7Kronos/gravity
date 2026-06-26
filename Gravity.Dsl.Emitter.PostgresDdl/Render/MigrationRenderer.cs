@@ -55,7 +55,10 @@ internal static class MigrationRenderer
 
     private static string MigrationPath(PostgresDdlEmitterConfig cfg, string? ns, string declName, int version)
     {
-        string dir = PostgresDdlEmitter.Combine(cfg.Output, PostgresDdlEmitter.Combine("migrations", PostgresDdlEmitter.ComposeDirectory(ns)));
+        // Paths are RELATIVE to the emitter's own output root; the host commits
+        // this buffer under <outputRoot>/<cfg.Output>, so prepending cfg.Output
+        // here would double it (e.g. postgres-ddl/postgres-ddl/migrations/…).
+        string dir = PostgresDdlEmitter.Combine("migrations", PostgresDdlEmitter.ComposeDirectory(ns));
         string file = cfg.MigrationPrefix + version.ToString(CultureInfo.InvariantCulture) + "__" + declName + ".sql";
         return PostgresDdlEmitter.Combine(dir, file);
     }
@@ -142,7 +145,8 @@ internal static class MigrationRenderer
         foreach (var r in curr.Relations)
         {
             if (prevRelNames.Contains(r.Name)) continue;
-            var rc = TypeMapper.MapRelation(r);
+            string fkElementType = TypeMapper.ResolveFkElementType(r, key, declToFile, multiVersionFqns, cfg, model);
+            var rc = TypeMapper.MapRelation(r, fkElementType);
             var colSb = new StringBuilder();
             colSb.Append("ALTER TABLE ").Append(qual)
                  .Append(" ADD COLUMN IF NOT EXISTS ").Append(rc.ColumnName).Append(' ').Append(rc.ColumnType);

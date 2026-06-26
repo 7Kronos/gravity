@@ -57,13 +57,13 @@ public sealed class MigrationTests
         result.Diagnostics.Should().BeEmpty();
 
         // FR-425: multi-version → .v<N>.sql suffix everywhere.
-        files.Should().ContainKey("out/schema/x/Doc.v1.sql");
-        files.Should().ContainKey("out/schema/x/Doc.v2.sql");
-        files.Should().NotContainKey("out/schema/x/Doc.sql");
+        files.Should().ContainKey("schema/x/Doc.v1.sql");
+        files.Should().ContainKey("schema/x/Doc.v2.sql");
+        files.Should().NotContainKey("schema/x/Doc.sql");
 
         // V1 baseline + V2 diff.
-        files.Should().ContainKey("out/migrations/x/V1__Doc.sql");
-        files.Should().ContainKey("out/migrations/x/V2__Doc.sql");
+        files.Should().ContainKey("migrations/x/V1__Doc.sql");
+        files.Should().ContainKey("migrations/x/V2__Doc.sql");
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public sealed class MigrationTests
             """);
         result.Diagnostics.Should().BeEmpty();
 
-        var v2 = files["out/migrations/x/V2__Doc.sql"];
+        var v2 = files["migrations/x/V2__Doc.sql"];
         // New properties.
         v2.Should().Contain("ALTER TABLE public.doc_v2 ADD COLUMN IF NOT EXISTS summary TEXT;");
         v2.Should().Contain("ALTER TABLE public.doc_v2 ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ NOT NULL;");
@@ -126,7 +126,7 @@ public sealed class MigrationTests
         result.Diagnostics.Should().BeEmpty();
 
         // V1 migration should contain the full CREATE TABLE.
-        var v1 = files["out/migrations/x/V1__Doc.sql"];
+        var v1 = files["migrations/x/V1__Doc.sql"];
         v1.Should().Contain("CREATE TABLE IF NOT EXISTS public.doc_v1");
         v1.Should().Contain("title TEXT NOT NULL");
         v1.Should().Contain("PRIMARY KEY (id)");

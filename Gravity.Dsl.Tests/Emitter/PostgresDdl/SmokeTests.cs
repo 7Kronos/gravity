@@ -40,21 +40,21 @@ public sealed class SmokeTests
         // Schema/ tree: 3 entities + 15 value types (1 ContactInfo + 14 result types) + 2 enums = 20 schema files.
         // Migrations/ tree: V1 baseline per entity = 3.
         // Total: 23 files.
-        var schemaFiles = snap.Keys.Where(k => k.StartsWith("postgres-ddl/schema/", System.StringComparison.Ordinal)).ToArray();
-        var migrationFiles = snap.Keys.Where(k => k.StartsWith("postgres-ddl/migrations/", System.StringComparison.Ordinal)).ToArray();
+        var schemaFiles = snap.Keys.Where(k => k.StartsWith("schema/", System.StringComparison.Ordinal)).ToArray();
+        var migrationFiles = snap.Keys.Where(k => k.StartsWith("migrations/", System.StringComparison.Ordinal)).ToArray();
 
         schemaFiles.Should().HaveCount(20);
         migrationFiles.Should().HaveCount(3);
 
         // Entity-table files present.
-        snap.Keys.Should().Contain("postgres-ddl/schema/hr/Employee.sql");
-        snap.Keys.Should().Contain("postgres-ddl/schema/hr/TimeEntry.sql");
-        snap.Keys.Should().Contain("postgres-ddl/schema/hr/Project.sql");
+        snap.Keys.Should().Contain("schema/hr/Employee.sql");
+        snap.Keys.Should().Contain("schema/hr/TimeEntry.sql");
+        snap.Keys.Should().Contain("schema/hr/Project.sql");
 
         // V1 baselines present.
-        snap.Keys.Should().Contain("postgres-ddl/migrations/hr/V1__Employee.sql");
-        snap.Keys.Should().Contain("postgres-ddl/migrations/hr/V1__TimeEntry.sql");
-        snap.Keys.Should().Contain("postgres-ddl/migrations/hr/V1__Project.sql");
+        snap.Keys.Should().Contain("migrations/hr/V1__Employee.sql");
+        snap.Keys.Should().Contain("migrations/hr/V1__TimeEntry.sql");
+        snap.Keys.Should().Contain("migrations/hr/V1__Project.sql");
     }
 
     [Fact]

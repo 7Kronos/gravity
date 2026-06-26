@@ -44,15 +44,15 @@ public sealed class GoldenFileTests
         var goldenRoot = GoldenJsonSchemaRegistryDir();
         var emitted = RunJsonSchemaEmitter();
 
-        // The emitter's output prefix is "json-schema", so a buffer key of
-        // "json-schema/hr/Employee.json" maps to golden "hr/Employee.json".
+        // The emitter writes paths RELATIVE to its own output root (the host
+        // applies the configured "json-schema" output once), so a buffer key of
+        // "hr/Employee.json" maps directly to golden "hr/Employee.json".
         var emittedRelative = new SortedDictionary<string, string>(StringComparer.Ordinal);
-        const string prefix = "json-schema/";
         foreach (var kv in emitted)
         {
-            kv.Key.StartsWith(prefix, StringComparison.Ordinal).Should().BeTrue(
-                because: "json-schema emitter must keep all output under its configured prefix: " + kv.Key);
-            emittedRelative[kv.Key.Substring(prefix.Length)] = kv.Value;
+            kv.Key.StartsWith("json-schema/", StringComparison.Ordinal).Should().BeFalse(
+                because: "json-schema emitter must not self-prefix its output dir (host applies it once): " + kv.Key);
+            emittedRelative[kv.Key] = kv.Value;
         }
 
         if (string.Equals(Environment.GetEnvironmentVariable("UPDATE_GOLDEN"), "1", StringComparison.Ordinal))
