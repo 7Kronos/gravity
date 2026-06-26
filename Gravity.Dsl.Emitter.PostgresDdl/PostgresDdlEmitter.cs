@@ -113,7 +113,7 @@ public sealed class PostgresDdlEmitter : IEmitter
                 };
                 if (body is not null)
                 {
-                    sink.WriteFile(SchemaPath(typed.Output, dslNs, decl.Name, key.Version, multiVersion), body);
+                    sink.WriteFile(SchemaPath(dslNs, decl.Name, key.Version, multiVersion), body);
                 }
             }
 
@@ -138,11 +138,14 @@ public sealed class PostgresDdlEmitter : IEmitter
     /// <summary>
     /// FR-425 filename rule. Multi-version case (FQN has &gt;1 version in scope)
     /// → <c>schema/&lt;ns&gt;/&lt;name&gt;.v&lt;N&gt;.sql</c> for every version.
-    /// Single-version case → <c>schema/&lt;ns&gt;/&lt;name&gt;.sql</c>.
+    /// Single-version case → <c>schema/&lt;ns&gt;/&lt;name&gt;.sql</c>. Paths are
+    /// RELATIVE to the emitter's own output root — the emitter host commits this
+    /// buffer under <c>&lt;outputRoot&gt;/&lt;cfg.Output&gt;</c>, so prepending the
+    /// configured output value here would double it (e.g. <c>postgres-ddl/postgres-ddl/…</c>).
     /// </summary>
-    private static string SchemaPath(string output, string? dslNamespace, string declName, int version, bool versioned)
+    private static string SchemaPath(string? dslNamespace, string declName, int version, bool versioned)
     {
-        string dir = Combine(output, Combine("schema", ComposeDirectory(dslNamespace)));
+        string dir = Combine("schema", ComposeDirectory(dslNamespace));
         string file = versioned
             ? declName + ".v" + version.ToString(CultureInfo.InvariantCulture) + ".sql"
             : declName + ".sql";

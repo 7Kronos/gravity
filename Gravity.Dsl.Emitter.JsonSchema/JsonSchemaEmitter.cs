@@ -82,7 +82,12 @@ public sealed class JsonSchemaEmitter : IEmitter
                 continue;
             }
             string? dslNs = sourceFile.Namespace?.Name;
-            string dir = Combine(typed.Output, ComposeDirectory(dslNs));
+            // Paths are RELATIVE to the emitter's own output root — the emitter
+            // host commits this buffer under <outputRoot>/<cfg.Output>, so
+            // prepending typed.Output here would double it (e.g.
+            // json-schema/json-schema/…). Mirror the C# emitter, which composes
+            // only the namespace directory and lets the host apply the output once.
+            string dir = ComposeDirectory(dslNs);
             int version = kv.Key.Version;
             bool versioned = multiVersionFqns.Contains(kv.Key.Fqn);
 
