@@ -89,7 +89,9 @@ internal static class Renderers
     public static string RenderEntityRecord(
         EntityDecl entity,
         string csharpNamespace,
-        bool fileScopedNamespaces)
+        bool fileScopedNamespaces,
+        string? dslNamespace = null,
+        IReadOnlyDictionary<string, string>? identityTypeByFqn = null)
     {
         var typesUsed = new List<TypeRef> { entity.Identity.Type };
         foreach (var p in entity.Properties) typesUsed.Add(p.Type);
@@ -99,6 +101,15 @@ internal static class Renderers
         if (hasManyRelation)
         {
             usings.Add("System.Collections.Immutable");
+        }
+        // A relation FK is typed by the TARGET entity's identity, so a Guid/DateTime/
+        // DateOnly element type must pull in `using System;` even when no identity or
+        // property contributes it (e.g. a String-identity entity referencing a
+        // UUID-identity target). Collect from the resolved element types.
+        foreach (var r in entity.Relations)
+        {
+            AddUsingForCSharpElement(
+                RelationIdentityType(r, dslNamespace, identityTypeByFqn), usings);
         }
 
         var sb = new StringBuilder();
@@ -115,7 +126,7 @@ internal static class Renderers
         }
         foreach (var r in entity.Relations)
         {
-            parts.Add(IndentLine(RelationCSharpType(r) + " " + Pascal(r.Name)));
+            parts.Add(IndentLine(RelationCSharpType(r, dslNamespace, identityTypeByFqn) + " " + Pascal(r.Name)));
         }
         // The current lifecycle state is part of the entity's surface.
         parts.Add(IndentLine(entity.Name + "State State"));
@@ -195,15 +206,97 @@ internal static class Renderers
         return sb.ToString();
     }
 
-    private static string RelationCSharpType(RelationDecl r)
+    /// <summary>
+    /// C# type for a relation foreign key. A relation is an FK to the TARGET
+    /// entity's identity, so the element type is the target identity's C# type
+    /// (<c>Guid</c> for UUID identities, <c>string</c> for String identities, …).
+    /// Cardinality-many surfaces <c>ImmutableArray&lt;T&gt;</c>; cardinality-one is
+    /// nullable when optional.
+    /// </summary>
+    private static string RelationCSharpType(
+        RelationDecl r,
+        string? referrerNamespace,
+        IReadOnlyDictionary<string, string>? identityTypeByFqn)
     {
+        var idType = RelationIdentityType(r, referrerNamespace, identityTypeByFqn);
         if (r.Cardinality == Cardinality.Many)
         {
-            // Many is keyed by target id; Phase 3 surfaces ImmutableArray<Guid>.
-            return "ImmutableArray<Guid>";
+            return "ImmutableArray<" + idType + ">";
         }
         // Cardinality one. Optional → nullable.
-        return r.IsOptional ? "Guid?" : "Guid";
+        return r.IsOptional ? idType + "?" : idType;
+    }
+
+    /// <summary>
+    /// Resolve the element C# type for a relation FK: the TARGET entity's identity
+    /// C# type. Falls back to <c>Guid</c> when the target cannot be resolved (which
+    /// should not happen for a model that passed resolution) so emission never crashes.
+    /// </summary>
+    private static string RelationIdentityType(
+        RelationDecl r,
+        string? referrerNamespace,
+        IReadOnlyDictionary<string, string>? identityTypeByFqn)
+    {
+        if (identityTypeByFqn is not null)
+        {
+            var fqn = ResolveTargetFqn(r.TargetEntity, referrerNamespace, identityTypeByFqn.Keys);
+            if (fqn is not null && identityTypeByFqn.TryGetValue(fqn, out var idType))
+            {
+                return idType;
+            }
+        }
+        return "Guid";
+    }
+
+    /// <summary>
+    /// Best-effort simple-name → FQN resolution against the known entity FQNs.
+    /// Prefers a target in the referrer's own namespace; otherwise returns the
+    /// lexicographically-first FQN with the matching simple name. The resolver
+    /// upstream already gates references — this only re-derives the FQN the
+    /// emitter needs to look up the target identity type.
+    /// </summary>
+    private static string? ResolveTargetFqn(
+        string simpleName,
+        string? referrerNamespace,
+        IEnumerable<string> candidateFqns)
+    {
+        string? sameNsMatch = null;
+        string? anyMatch = null;
+        foreach (var key in candidateFqns)
+        {
+            int lastDot = key.LastIndexOf('.');
+            string simple = lastDot < 0 ? key : key.Substring(lastDot + 1);
+            if (!string.Equals(simple, simpleName, StringComparison.Ordinal)) continue;
+            string ns = lastDot < 0 ? string.Empty : key.Substring(0, lastDot);
+            if (referrerNamespace != null && string.Equals(ns, referrerNamespace, StringComparison.Ordinal))
+            {
+                sameNsMatch = key;
+                break;
+            }
+            if (anyMatch == null || string.CompareOrdinal(key, anyMatch) < 0)
+            {
+                anyMatch = key;
+            }
+        }
+        return sameNsMatch ?? anyMatch;
+    }
+
+    /// <summary>
+    /// Add the namespace a rendered C# element type needs. Only the BCL value types
+    /// emitted by <see cref="TypeMapper"/> (<c>Guid</c>, <c>DateTime</c>,
+    /// <c>DateOnly</c>) require <c>using System;</c>; primitives like <c>string</c>
+    /// and <c>int</c> need none.
+    /// </summary>
+    private static void AddUsingForCSharpElement(string csharpType, SortedSet<string> set)
+    {
+        switch (csharpType)
+        {
+            case "Guid":
+            case "DateTime":
+            case "DateOnly":
+                set.Add("System");
+                break;
+        }
     }
 
     private static SortedSet<string> CollectUsings(IEnumerable<TypeRef> types)
